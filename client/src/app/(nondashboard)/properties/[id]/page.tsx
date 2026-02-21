@@ -570,9 +570,9 @@ export default function PropertyPage() {
           </div>
 
           {/* Right Column - Contact & Actions */}
-          <div className="space-y-6">
+          <div className="lg:col-span-1 relative">
             {/* Owner Card */}
-            <Card className="sticky top-20 z-20">
+            <Card className="sticky top-20 ">
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold mb-4">Contact Owner</h2>
                 
@@ -686,46 +686,53 @@ export default function PropertyPage() {
             </Card>
 
             {/* Rent Agreement Card */}
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">Rent Agreement</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Generate a legally valid rent agreement instantly
-                </p>
-                <Button variant="outline" className="w-full">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Generate Agreement
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="relative -mt-6 space-y-6 bg-secondary ">
+              {/* Rent Agreement Card - with higher z-index and white background */}
+              <div className="relative z-10 bg-white rounded-lg shadow-lg">
+                <Card className="border-0 shadow-none">
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold mb-2">Rent Agreement</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Generate a legally valid rent agreement instantly
+                    </p>
+                    <Button variant="outline" className="w-full">
+                      <FileText className="mr-2 h-4 w-4" />
+                      Generate Agreement
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
 
-            {/* Similar Properties */}
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-4">Similar Properties</h3>
-                <div className="space-y-4">
-                  {[1, 2].map((i) => (
-                    <Link href={`/properties/${i}`} key={i}>
-                      <div className="flex gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                        <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                          <Image
-                            src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=200"
-                            alt="Similar property"
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">2BHK in Whitefield</p>
-                          <p className="text-xs text-gray-500">1.5 km from metro</p>
-                          <p className="text-sm font-bold text-blue-600">₹25,000</p>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+              {/* Similar Properties - with higher z-index and white background */}
+              <div className="relative z-10 bg-white rounded-lg shadow-lg">
+                <Card className="border-0 shadow-none">
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold mb-4">Similar Properties</h3>
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <Link href={`/properties/${i}`} key={i}>
+                          <div className="flex gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                            <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                              <Image
+                                src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=200"
+                                alt="Similar property"
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">2BHK in Whitefield</p>
+                              <p className="text-xs text-gray-500">1.5 km from metro</p>
+                              <p className="text-sm font-bold text-blue-600">₹25,000</p>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>
