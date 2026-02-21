@@ -1,0 +1,173 @@
+@keyframes slideDown {
+    from {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes pulseGlow {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1);
+    }
+  }
+  
+  .navbar {
+    animation: slideDown 0.5s ease-out;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  
+  .navbarScrolled {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  
+  .logoContainer {
+    position: relative;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  
+  .logoContainer:hover {
+    transform: scale(1.05) rotate(2deg);
+  }
+  
+  .logoContainer::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  
+  .logoContainer:hover::after {
+    opacity: 1;
+  }
+  
+  .brandContainer {
+    animation: fadeIn 0.5s ease-out 0.2s both;
+    position: relative;
+  }
+  
+  .brandContainer::before {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 2px;
+    background: currentColor;
+    transition: width 0.3s ease;
+    opacity: 0.5;
+  }
+  
+  .brandContainer:hover::before {
+    width: 80%;
+  }
+  
+  .navLink {
+    position: relative;
+    transition: color 0.3s ease;
+  }
+  
+  .navLink::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: currentColor;
+    transition: width 0.3s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  
+  .navLink:hover::after {
+    width: 100%;
+  }
+  
+  .navLinkActive::after {
+    width: 100%;
+  }
+  
+  .buttonOutline {
+    animation: pulseGlow 2s infinite;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  
+  .buttonOutline:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.3);
+  }
+  
+  .buttonPrimary {
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  
+  .buttonPrimary:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  }
+  
+  .mobileMenuButton {
+    transition: transform 0.3s ease;
+  }
+  
+  .mobileMenuButton:hover {
+    transform: rotate(90deg);
+  }
+  
+  .mobileMenu {
+    animation: slideDown 0.3s ease-out;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  
+  .avatarContainer {
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+    border: 2px solid transparent;
+  }
+  
+  .avatarContainer:hover {
+    transform: scale(1.1);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+  
+  .loadingShimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
+  }
