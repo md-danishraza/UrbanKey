@@ -53,3 +53,6 @@ coverage/
 
 # seed
 src/seed
+
+.env
+/src/generated/prisma

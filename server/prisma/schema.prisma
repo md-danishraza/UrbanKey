@@ -1,0 +1,258 @@
+generator client {
+  provider        = "prisma-client-js"
+  // Add multiSchema to support your custom 'urbankey' schema
+  previewFeatures = ["postgresqlExtensions", "multiSchema"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  // Tell Prisma exactly which schema the extension is in
+  extensions = [vector(map: "vector", schema: "urbankey")]
+  // Define your active schemas
+  schemas    = ["urbankey"]
+}
+
+model User {
+  id         String   @id @default(cuid()) // We'll map Clerk user ID here
+  email      String   @unique
+  phone      String?  @unique
+  fullName   String
+  role       Role     @default(TENANT)
+  isVerified Boolean  @default(false)
+  avatarUrl  String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  properties Property[]       @relation("LandlordProperties")
+  wishlist   Wishlist[]
+  visits     VisitSchedule[]
+  leads      Lead[]
+  agreements RentAgreement[]  @relation("LandlordAgreements")
+  analytics  AnalyticsEvent[]
+
+  @@map("users")
+  @@schema("urbankey")
+}
+
+model Property {
+  id           String         @id @default(cuid())
+  landlordId   String         @map("landlord_id")
+  title        String
+  description  String?
+  bhk          BHKType
+  rent         Float
+  furnishing   FurnishingType
+  tenantType   TenantType     @map("tenant_type")
+  isActive     Boolean        @default(true) @map("is_active")
+  isBroker     Boolean        @default(false) @map("is_broker")
+  brokerageFee Float?         @map("brokerage_fee")
+
+  // Address
+  addressLine1 String  @map("address_line1")
+  addressLine2 String? @map("address_line2")
+  city         String
+  state        String
+  pincode      String
+
+  // Location
+  latitude  Float?
+  longitude Float?
+
+  // Indian amenities
+  hasWater247    Boolean @default(false) @map("has_water_247")
+  hasPowerBackup Boolean @default(false) @map("has_power_backup")
+  hasIglPipeline Boolean @default(false) @map("has_igl_pipeline")
+
+  // Metro info
+  nearestMetroStation String? @map("nearest_metro_station")
+  distanceToMetroKm   Float?  @map("distance_to_metro_km")
+
+  // Metadata
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  landlord   User               @relation("LandlordProperties", fields: [landlordId], references: [id])
+  images     PropertyImage[]
+  wishlists  Wishlist[]
+  visits     VisitSchedule[]
+  leads      Lead[]
+  agreements RentAgreement[]
+  analytics  AnalyticsEvent[]
+  embeddings PropertyEmbedding?
+
+  @@map("properties")
+  @@schema("urbankey")
+}
+
+model PropertyImage {
+  id         String   @id @default(cuid())
+  propertyId String   @map("property_id")
+  imageUrl   String   @map("image_url")
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  sortOrder  Int?     @map("sort_order")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_images")
+  @@schema("urbankey")
+}
+
+model Wishlist {
+  id         String   @id @default(cuid())
+  tenantId   String   @map("tenant_id")
+  propertyId String   @map("property_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant   User     @relation(fields: [tenantId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, propertyId])
+  @@map("wishlists")
+  @@schema("urbankey")
+}
+
+model VisitSchedule {
+  id            String      @id @default(cuid())
+  tenantId      String      @map("tenant_id")
+  propertyId    String      @map("property_id")
+  scheduledDate DateTime    @map("scheduled_date")
+  scheduledTime String      @map("scheduled_time") // store as string "HH:MM"
+  status        VisitStatus @default(PENDING)
+  notes         String?
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  tenant   User     @relation(fields: [tenantId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("visit_schedules")
+  @@schema("urbankey")
+}
+
+model Lead {
+  id            String        @id @default(cuid())
+  propertyId    String        @map("property_id")
+  tenantId      String        @map("tenant_id")
+  contactMethod ContactMethod @default(WHATSAPP) @map("contact_method")
+  message       String?
+  status        LeadStatus    @default(NEW)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant   User     @relation(fields: [tenantId], references: [id])
+
+  @@map("leads")
+  @@schema("urbankey")
+}
+
+model RentAgreement {
+  id            String   @id @default(cuid())
+  propertyId    String   @map("property_id")
+  landlordId    String   @map("landlord_id")
+  tenantName    String   @map("tenant_name")
+  tenantPhone   String?  @map("tenant_phone")
+  monthlyRent   Float    @map("monthly_rent")
+  agreementDate DateTime @map("agreement_date")
+  pdfUrl        String?  @map("pdf_url")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  landlord User     @relation("LandlordAgreements", fields: [landlordId], references: [id])
+
+  @@map("rent_agreements")
+  @@schema("urbankey")
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  eventType  String   @map("event_type")
+  userId     String?  @map("user_id")
+  propertyId String?  @map("property_id")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User?     @relation(fields: [userId], references: [id])
+  property Property? @relation(fields: [propertyId], references: [id])
+
+  @@map("analytics_events")
+  @@schema("urbankey")
+}
+
+// pgvector model for embeddings
+model PropertyEmbedding {
+  id         String                      @id @default(cuid())
+  propertyId String                      @unique @map("property_id")
+  content    String? // combined property text
+  embedding  Unsupported("vector(384)")? // using pgvector type
+  updatedAt  DateTime                    @updatedAt @map("updated_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_embeddings")
+  @@schema("urbankey")
+}
+
+// Enums
+enum Role {
+  TENANT
+  LANDLORD
+  ADMIN
+
+  @@schema("urbankey")
+}
+
+enum BHKType {
+  ONE_BHK       @map("1BHK")
+  TWO_BHK       @map("2BHK")
+  THREE_BHK     @map("3BHK")
+  FOUR_BHK_PLUS @map("4BHK+")
+
+  @@schema("urbankey")
+}
+
+enum FurnishingType {
+  UNFURNISHED
+  SEMI_FURNISHED
+  FULLY_FURNISHED
+
+  @@schema("urbankey")
+}
+
+enum TenantType {
+  FAMILY
+  BACHELORS
+  BOTH
+
+  @@schema("urbankey")
+}
+
+enum VisitStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+
+  @@schema("urbankey")
+}
+
+enum ContactMethod {
+  WHATSAPP
+  PHONE
+  EMAIL
+
+  @@schema("urbankey")
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  CONVERTED
+  CLOSED
+
+  @@schema("urbankey")
+}
