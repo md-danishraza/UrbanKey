@@ -13,6 +13,9 @@
   "license": "ISC",
   "devDependencies": {
     "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/morgan": "^1.9.10",
+    "@types/pg": "^8.16.0",
     "prisma": "^7.4.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0"
@@ -20,9 +23,8 @@
   "dependencies": {
     "@clerk/backend": "^2.32.1",
     "@clerk/clerk-sdk-node": "^4.13.23",
+    "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.1",
-    "@types/express": "^5.0.6",
-    "@types/morgan": "^1.9.10",
     "@types/node": "^25.0.9",
     "@types/uuid": "^10.0.0",
     "axios": "^1.13.5",
@@ -30,6 +32,7 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "morgan": "^1.10.1",
+    "pg": "^8.18.0",
     "svix": "^1.86.0",
     "uuid": "^13.0.0"
   }

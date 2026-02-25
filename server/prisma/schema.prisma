@@ -6,7 +6,6 @@ generator client {
 
 datasource db {
   provider   = "postgresql"
-  url        = env("DATABASE_URL")
   // Tell Prisma exactly which schema the extension is in
   extensions = [vector(map: "vector", schema: "urbankey")]
   // Define your active schemas

@@ -1,7 +1,7 @@
 // # Webhook handlers for Clerk events
 import type { Request, Response } from "express";
 import { Webhook } from "svix";
-import { prisma } from "../config/database.js";
+import prisma from "../config/database.js";
 
 export const clerkWebhook = async (req: Request, res: Response) => {
   const payload = req.body;
