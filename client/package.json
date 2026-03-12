@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "seed": "tsx prisma/seed.ts",
+    "prisma:studio": "npx prisma studio",
     "lint": "eslint"
   },
   "dependencies": {

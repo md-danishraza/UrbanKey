@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.routes.js";
 import propertyRoutes from "./routes/property.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
+import testRoutes from "./routes/test.routes.js";
 
 dotenv.config();
 
@@ -36,6 +37,11 @@ app.get("/health", (req, res) => {
     environment: process.env.NODE_ENV,
   });
 });
+
+if (process.env.NODE_ENV === "development") {
+  app.use("/api/test", testRoutes);
+  console.log("🧪 Test routes enabled for development");
+}
 
 // Error handler (must be last)
 app.use(errorHandler);
