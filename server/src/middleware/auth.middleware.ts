@@ -47,22 +47,6 @@ export const requireAuth = async (
           return next();
         }
       }
-
-      // Also handle our base64 mock tokens (for backward compatibility)
-      try {
-        // Try to decode as base64 (our mock tokens)
-        const decoded = JSON.parse(Buffer.from(token, "base64").toString());
-        if (decoded.sub && decoded.sub.startsWith("test_user_")) {
-          req.auth = {
-            userId: decoded.sub,
-            sessionId: decoded.sid || `test_session_${Date.now()}`,
-            claims: decoded,
-          };
-          return next();
-        }
-      } catch (e) {
-        // Not a base64 token, continue to Clerk verification
-      }
     }
 
     // PRODUCTION MODE: Verify with Clerk

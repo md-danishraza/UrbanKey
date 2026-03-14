@@ -10,6 +10,7 @@ import {
   getUserWishlist,
   getUserVisits,
   getUserLeads,
+  syncUser,
 } from "../controllers/user.controller.js";
 
 const router = Router();
@@ -18,6 +19,7 @@ const router = Router();
 router.use(requireAuth);
 
 // Current user routes
+router.post("/sync", syncUser);
 router.get("/me", getCurrentUser);
 router.put("/me", updateUser);
 router.delete("/me", deleteUser);

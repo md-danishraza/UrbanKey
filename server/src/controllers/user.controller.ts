@@ -138,6 +138,41 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// sync users
+export const syncUser = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Notice we use fullName instead of firstName/lastName based on your schema
+    const { email, fullName, avatarUrl, role } = req.body;
+
+    // UPSERT: Updates the user if they exist, Creates them if they don't
+    const user = await prisma.user.upsert({
+      where: { id: userId },
+      update: {
+        fullName,
+        avatarUrl,
+        // We don't update email or role here to prevent overwriting
+      },
+      create: {
+        id: userId,
+        email,
+        fullName,
+        avatarUrl,
+        role: role || "TENANT",
+      },
+    });
+
+    res.json(user);
+  } catch (error) {
+    console.error("Error syncing user:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 export const getUserProperties = async (req: AuthRequest, res: Response) => {
   try {
     const requestingUserId = req.auth?.userId;

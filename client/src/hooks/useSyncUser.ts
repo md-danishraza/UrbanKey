@@ -4,7 +4,9 @@ import { apiClient } from "@/lib/api-client";
 
 export function useSyncUser() {
   const { user, isSignedIn } = useUser();
-  const { getToken } = useAuth(); // Safely get token on the client
+  const { getToken } = useAuth();
+
+  // Prevent double-firing in React Strict Mode
   const hasSynced = useRef(false);
 
   useEffect(() => {
@@ -13,28 +15,27 @@ export function useSyncUser() {
     const syncUserWithBackend = async () => {
       try {
         hasSynced.current = true;
+
+        // Securely get the JWT token from Clerk
         const token = await getToken();
 
-        // Pass the token to the API client
-        const existingUser = await apiClient.get("/users/me", token);
+        // Call the single UPSERT endpoint on your Node.js backend
+        await apiClient.post(
+          "/api/users/sync",
+          {
+            email: user.primaryEmailAddress?.emailAddress,
+            // user.fullName is automatically provided by Clerk (combines first & last)
+            fullName: user.fullName,
+            avatarUrl: user.imageUrl,
+            role: "TENANT",
+          },
+          token
+        );
 
-        if (!existingUser) {
-          await apiClient.post(
-            "/users",
-            {
-              id: user.id,
-              email: user.primaryEmailAddress?.emailAddress,
-              firstName: user.firstName,
-              lastName: user.lastName,
-              avatarUrl: user.imageUrl,
-              role: "TENANT",
-            },
-            token
-          );
-        }
+        console.log("User synced successfully with backend database!");
       } catch (error) {
         console.error("Failed to sync user with backend:", error);
-        hasSynced.current = false; // Allow retry if failed
+        hasSynced.current = false; // Allow retry if it failed
       }
     };
 
