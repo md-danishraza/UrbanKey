@@ -42,7 +42,6 @@ export const getTestToken = async (req: Request, res: Response) => {
       testUser = TEST_USERS[0];
     }
 
-    // In development, we'll create a mock token
     // Note: This is for testing ONLY. In production, use proper Clerk tokens
     if (!testUser) {
       return res
@@ -50,22 +49,14 @@ export const getTestToken = async (req: Request, res: Response) => {
         .json({ error: "Invalid user type or test user not found" });
     }
 
-    const mockToken = Buffer.from(
-      JSON.stringify({
-        sub: testUser.id,
-        sid: `test_session_${Date.now()}`,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour
-        iat: Math.floor(Date.now() / 1000),
-      })
-    ).toString("base64");
-
+    // In development, we'll just return the user ID as the token
+    // The middleware will recognize this as a test token
     res.json({
       success: true,
-      token: mockToken,
+      token: testUser.id, // Simply return the user ID
       userId: testUser.id,
       user: testUser,
-      message:
-        "This is a test token. In production, use proper Clerk JWT tokens.",
+      message: "Development token - use this directly in Authorization header",
     });
   } catch (error) {
     console.error("Error generating test token:", error);

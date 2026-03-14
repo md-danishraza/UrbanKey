@@ -35,25 +35,23 @@ import { cn } from "@/lib/utils";
 
 import styles from "@/styles/Navbar.module.css"
 
-// Types for user (will be replaced with actual auth)
-interface User {
+// auth 
+import { useClerk,useUser } from "@clerk/nextjs";
+import router from "next/router";
+
+
+
+type UserRole = "tenant" | "landlord" | "admin";
+
+interface ClerkUser {
   id: string;
   name: string;
-  email: string;
-  role: 'tenant' | 'landlord' | 'admin';
-  avatar?: string;
+  email?: string;
+  avatar: string;
+  role: UserRole;
   isVerified: boolean;
 }
 
-// Mock user for development - will be replaced with actual auth
-const MOCK_USER: User | null = null; // Set to null for logged out state
-// const MOCK_USER: User = { // Uncomment for logged in state
-//   id: '1',
-//   name: 'Rahul Sharma',
-//   email: 'rahul@example.com',
-//   role: 'tenant',
-//   isVerified: true,
-// };
 
 interface NavLink {
   href: string;
@@ -63,9 +61,25 @@ interface NavLink {
 }
 
 function Navbar() {
+    // auth
+    const { user, isSignedIn } = useUser();
+    const { signOut } = useClerk();
+    const clerkUser: ClerkUser | null = user
+    ? {
+        id: user.id,
+        name: user.fullName || "User",
+        email: user.primaryEmailAddress?.emailAddress,
+        avatar: user.imageUrl,
+        role: (user.publicMetadata?.role as UserRole) ?? "tenant",
+        isVerified: true,
+      }
+    : null;
+
+
+
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(MOCK_USER);
   const [isLoading, setIsLoading] = useState(false);
   const pathname = usePathname();
 
@@ -92,18 +106,18 @@ function Navbar() {
 
     const roleSpecificLinks: NavLink[] = [];
 
-    if (user?.role === 'tenant') {
+    if (clerkUser?.role === 'tenant') {
       roleSpecificLinks.push(
         { href: '/tenant/wishlist', label: 'Wishlist', icon: Heart, roles: ['tenant'] },
         { href: '/tenant/visits', label: 'My Visits', icon: Building2, roles: ['tenant'] }
       );
-    } else if (user?.role === 'landlord') {
+    } else if (clerkUser?.role === 'landlord') {
       roleSpecificLinks.push(
         { href: '/landlord/dashboard', label: 'Dashboard', icon: Building2, roles: ['landlord'] },
         { href: '/landlord/properties', label: 'My Properties', icon: Building2, roles: ['landlord'] },
         { href: '/landlord/leads', label: 'Leads', icon: User, roles: ['landlord'] }
       );
-    } else if (user?.role === 'admin') {
+    } else if (clerkUser?.role === 'admin') {
       roleSpecificLinks.push(
         { href: '/admin/dashboard', label: 'Dashboard', icon: Shield, roles: ['admin'] },
         { href: '/admin/verifications', label: 'Verifications', icon: User, roles: ['admin'] },
@@ -112,30 +126,28 @@ function Navbar() {
     }
 
     return [...commonLinks, ...roleSpecificLinks].filter(link => 
-      !user || (link.roles && link.roles.includes(user.role))
+      !isSignedIn || (link.roles && link.roles.includes(clerkUser?.role || 'tenant'))
     );
   };
 
   const navLinks = getNavLinks();
 
-  const handleLogout = async () => {
-    setIsLoading(true);
-    try {
-      // Simulate logout
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setUser(null);
-      // Redirect to home
-      window.location.href = '/';
-    } catch (error) {
-      console.error('Logout failed:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Update handleLogout
+const handleLogout = async () => {
+  setIsLoading(true);
+  try {
+    await signOut();
+    router.push('/');
+  } catch (error) {
+    console.error('Logout failed:', error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const getUserInitials = () => {
-    if (!user?.name) return 'U';
-    return user.name
+    if (!clerkUser?.name) return 'U';
+    return clerkUser.name
       .split(' ')
       .map(n => n[0])
       .join('')
@@ -153,6 +165,9 @@ function Navbar() {
         return 'bg-green-500';
     }
   };
+
+
+
 
   return (
     <>
@@ -205,7 +220,7 @@ function Navbar() {
 
           {/* Right: User Menu / Auth Buttons */}
           <div className="flex items-center gap-3">
-            {user ? (
+            {clerkUser ? (
               <>
                 {/* Notification Bell (Optional) */}
                 <Button
@@ -225,8 +240,8 @@ function Navbar() {
                   <DropdownMenuTrigger asChild>
                     <div className={cn("flex items-center gap-2 cursor-pointer", styles.avatarContainer)}>
                       <Avatar className="h-9 w-9 border-2 border-white/20">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback className={cn("text-white", getRoleBadgeColor(user.role))}>
+                        <AvatarImage src={clerkUser?.avatar} />
+                        <AvatarFallback className={cn("text-white", getRoleBadgeColor(clerkUser?.role))}>
                           {getUserInitials()}
                         </AvatarFallback>
                       </Avatar>
@@ -239,11 +254,11 @@ function Navbar() {
                   <DropdownMenuContent align="end" className="w-56 mt-2">
                     <DropdownMenuLabel>
                       <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium">{user.name}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                        <Badge className={cn("w-fit mt-1", getRoleBadgeColor(user.role))}>
-                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                          {!user.isVerified && (
+                        <p className="text-sm font-medium">{clerkUser?.name}</p>
+                        <p className="text-xs text-muted-foreground">{clerkUser?.email}</p>
+                        <Badge className={cn("w-fit mt-1", getRoleBadgeColor(clerkUser?.role))}>
+                          {clerkUser?.role.charAt(0).toUpperCase() + clerkUser?.role.slice(1)}
+                          {!clerkUser?.isVerified && (
                             <span className="ml-1 text-xs">(Unverified)</span>
                           )}
                         </Badge>
@@ -252,7 +267,7 @@ function Navbar() {
                     <DropdownMenuSeparator />
                     
                     {/* Role-specific quick links */}
-                    {user.role === 'landlord' && (
+                    { clerkUser.role === 'landlord' && (
                       <DropdownMenuItem asChild>
                         <Link href="/landlord/dashboard" className="cursor-pointer">
                           <Building2 className="mr-2 h-4 w-4" />
@@ -408,14 +423,8 @@ function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Loading Overlay (optional) */}
-      {isLoading && (
-        <div className="fixed inset-0 bg-black/20 z-[60] flex items-center justify-center">
-          <div className="bg-white rounded-lg p-4 shadow-xl">
-            <div className={cn("w-48 h-2 rounded-full overflow-hidden", styles.loadingShimmer)} />
-          </div>
-        </div>
-      )}
+      
+      
     </>
   );
 }

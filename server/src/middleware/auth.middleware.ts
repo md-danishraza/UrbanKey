@@ -9,6 +9,13 @@ export interface AuthRequest extends Request {
   };
 }
 
+// Test users for development
+const TEST_USERS = {
+  test_user_1: { id: "test_user_1", role: "TENANT" },
+  test_user_2: { id: "test_user_2", role: "LANDLORD" },
+  test_user_3: { id: "test_user_3", role: "ADMIN" },
+};
+
 export const requireAuth = async (
   req: AuthRequest,
   res: Response,
@@ -22,14 +29,49 @@ export const requireAuth = async (
 
     const token = header.substring(7);
 
-    // Verify the token using Clerk's verifyToken
+    // DEVELOPMENT MODE: Check for test tokens
+    if (process.env.NODE_ENV === "development") {
+      // Check if token is a test token (starts with 'test_')
+      if (token.startsWith("test_")) {
+        const userId = token; // token itself is the user ID in test mode
+
+        if (TEST_USERS[userId as keyof typeof TEST_USERS]) {
+          req.auth = {
+            userId: userId,
+            sessionId: `test_session_${Date.now()}`,
+            claims: {
+              sub: userId,
+              role: TEST_USERS[userId as keyof typeof TEST_USERS].role,
+            },
+          };
+          return next();
+        }
+      }
+
+      // Also handle our base64 mock tokens (for backward compatibility)
+      try {
+        // Try to decode as base64 (our mock tokens)
+        const decoded = JSON.parse(Buffer.from(token, "base64").toString());
+        if (decoded.sub && decoded.sub.startsWith("test_user_")) {
+          req.auth = {
+            userId: decoded.sub,
+            sessionId: decoded.sid || `test_session_${Date.now()}`,
+            claims: decoded,
+          };
+          return next();
+        }
+      } catch (e) {
+        // Not a base64 token, continue to Clerk verification
+      }
+    }
+
+    // PRODUCTION MODE: Verify with Clerk
     const payload = await verifyToken(token, {
       secretKey: process.env.CLERK_SECRET_KEY!,
-      // Optionally set authorizedParties if needed
     });
 
     req.auth = {
-      userId: payload.sub, // 'sub' contains the user ID
+      userId: payload.sub,
       sessionId: payload.sid,
       claims: payload,
     };

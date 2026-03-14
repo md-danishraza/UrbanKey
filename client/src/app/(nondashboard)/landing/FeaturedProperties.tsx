@@ -137,8 +137,8 @@ function FeaturedProperties() {
               className="h-full"
             >
               <Card className={cn(
-                "h-full overflow-hidden group cursor-pointer border-0 shadow-lg",
-                styles.propertyCard
+                "h-full overflow-hidden group cursor-pointer border-0 shadow-lg p-0",
+                styles.propertyCard 
               )}>
                 {/* Image Container */}
                 <div className="relative h-48 overflow-hidden">
