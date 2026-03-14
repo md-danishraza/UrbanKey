@@ -207,7 +207,7 @@ const handleLogout = async () => {
                     "flex items-center gap-2 text-sm font-medium transition-colors relative",
                     styles.navLink,
                     isActive 
-                      ? cn("text-foreground", styles.navLinkActive) 
+                      ? cn("text-blue-500", styles.navLinkActive) 
                       : cn("text-muted-foreground hover:text-foreground", isScrolled ? "text-gray-600" : "text-primary-foreground/80 hover:text-primary-foreground")
                   )}
                 >

@@ -5,6 +5,8 @@ import StoreProvider from "@/state/StoreProvider";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {ClerkProvider} from "@clerk/nextjs";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
+import UserSyncProvider from "@/hooks/SyncWrapper";
 
 const Providers = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -23,9 +25,12 @@ const Providers = ({ children }: { children: React.ReactNode }) => {
       }}
     >
     <StoreProvider>
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<LoadingSpinner/>}>
         <TooltipProvider>
-          {children}
+          {/* Wrap children with the User Sync Provider */}
+          <UserSyncProvider>
+              {children}
+            </UserSyncProvider>
           <Toaster richColors closeButton />
         </TooltipProvider>
       </Suspense>

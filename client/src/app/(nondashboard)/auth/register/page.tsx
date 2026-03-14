@@ -1,15 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { 
-  Home, 
-  Building2, 
-  Users, 
-  ArrowRight,
-  CheckCircle
-} from 'lucide-react';
+import { Home, Building2, ArrowRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,145 +14,98 @@ const roles = [
     id: 'tenant',
     title: 'Looking for a Home',
     description: 'Find your perfect rental property',
-    icon: Users,
-    features: [
-      'Search and filter properties',
-      'Save favorites to wishlist',
-      'Schedule visits',
-      'Chat with landlords'
-    ],
-    gradient: 'from-blue-500 to-cyan-500',
-    bgColor: 'bg-blue-50'
+    icon: Home,
+    gradient: 'from-blue-600 to-cyan-600',
+    bgGradient: 'from-blue-50 to-cyan-50',
+    path: '/auth/register/tenant'
   },
   {
     id: 'landlord',
     title: 'List Your Property',
     description: 'Rent out your property easily',
     icon: Building2,
-    features: [
-      'List unlimited properties',
-      'Manage inquiries',
-      'Track leads',
-      'Generate rent agreements'
-    ],
-    gradient: 'from-purple-500 to-pink-500',
-    bgColor: 'bg-purple-50'
+    gradient: 'from-purple-600 to-pink-600',
+    bgGradient: 'from-purple-50 to-pink-50',
+    path: '/auth/register/landlord'
   }
 ];
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleContinue = () => {
-    if (!selectedRole) return;
-    
-    setIsLoading(true);
-    // Redirect to role-specific registration
-    router.push(`/auth/register/${selectedRole}`);
-  };
 
   return (
-    <div className={cn(styles.authContainer, "flex items-center justify-center p-4")}>
-      {/* Floating Shapes */}
-      <div className={cn(styles.floatingShape, styles.shape1)} />
-      <div className={cn(styles.floatingShape, styles.shape2)} />
-      <div className={cn(styles.floatingShape, styles.shape3)} />
+    <div className={cn(
+      styles.authContainer, 
+      "flex items-center justify-center p-4 min-h-screen relative overflow-hidden bg-gradient-to-br from-gray-50 to-white"
+    )}>
+      
+      {/* Decorative Background Shapes */}
+      <div className={cn(styles.floatingShape, styles.shape1, "pointer-events-none absolute")} />
+      <div className={cn(styles.floatingShape, styles.shape2, "pointer-events-none absolute")} />
+      <div className={cn(styles.floatingShape, styles.shape3, "pointer-events-none absolute")} />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-5xl"
+        className="w-full max-w-4xl relative z-10"
       >
-        <Card className={cn(styles.glassCard, "border-0")}>
-          <CardHeader className="text-center space-y-2">
+        <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm">
+          <CardHeader className="text-center space-y-2 pb-8">
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Join UrbanKey
             </CardTitle>
             <CardDescription className="text-gray-600 text-lg">
-              Choose how you want to use UrbanKey
+              Choose how you want to get started
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-8">
-            {/* Role Selection Cards */}
+          <CardContent>
             <div className="grid md:grid-cols-2 gap-6">
               {roles.map((role) => {
                 const Icon = role.icon;
-                const isSelected = selectedRole === role.id;
-
+                
                 return (
                   <motion.div
                     key={role.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setSelectedRole(role.id)}
-                    className={cn(
-                      styles.roleCard,
-                      isSelected && styles.roleCardSelected,
-                      "relative p-6 rounded-xl border-2 cursor-pointer",
-                      role.bgColor,
-                      isSelected ? `border-${role.gradient.split(' ')[0].replace('from-', '')}` : 'border-transparent'
-                    )}
+                    onClick={() => router.push(role.path)}
+                    className="cursor-pointer"
                   >
-                    {isSelected && (
-                      <div className="absolute top-4 right-4">
-                        <CheckCircle className="h-6 w-6 text-green-500" />
-                      </div>
-                    )}
-
-                    <div className={cn(
-                      "w-16 h-16 rounded-xl bg-gradient-to-r mb-4 flex items-center justify-center",
-                      role.gradient
+                    <Card className={cn(
+                      "border-2 hover:border-transparent transition-all duration-300 overflow-hidden",
+                      `bg-gradient-to-br ${role.bgGradient}`
                     )}>
-                      <Icon className="h-8 w-8 text-white" />
-                    </div>
-
-                    <h3 className="text-2xl font-bold mb-2">{role.title}</h3>
-                    <p className="text-gray-600 mb-4">{role.description}</p>
-
-                    <ul className="space-y-2">
-                      {role.features.map((feature, index) => (
-                        <li key={index} className="flex items-center text-sm text-gray-600">
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
+                      <CardContent className="p-6 text-center">
+                        <div className={cn(
+                          "w-20 h-20 rounded-2xl bg-gradient-to-r mx-auto mb-4 flex items-center justify-center",
+                          role.gradient
+                        )}>
+                          <Icon className="h-10 w-10 text-white" />
+                        </div>
+                        
+                        <h3 className="text-xl font-bold mb-2">{role.title}</h3>
+                        <p className="text-gray-600 mb-4">{role.description}</p>
+                        
+                        <Button 
+                          variant="ghost" 
+                          className={cn(
+                            "group hover:bg-transparent",
+                            role.id === 'tenant' ? "text-blue-600" : "text-purple-600"
+                          )}
+                        >
+                          Get Started 
+                          <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                        </Button>
+                      </CardContent>
+                    </Card>
                   </motion.div>
                 );
               })}
             </div>
 
-            {/* Continue Button */}
-            <div className="flex justify-center">
-              <Button
-                size="lg"
-                onClick={handleContinue}
-                disabled={!selectedRole || isLoading}
-                className={cn(
-                  styles.submitButton,
-                  "px-12 h-14 text-white font-semibold text-lg"
-                )}
-              >
-                {isLoading ? (
-                  <div className="flex items-center">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    Please wait...
-                  </div>
-                ) : (
-                  <div className="flex items-center">
-                    Continue as {selectedRole ? (selectedRole === 'tenant' ? 'Tenant' : 'Landlord') : ''}
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </div>
-                )}
-              </Button>
-            </div>
-
-            {/* Login Link */}
-            <div className="text-center text-gray-600">
+            <div className="text-center mt-8 text-gray-600">
               Already have an account?{' '}
               <a 
                 href="/auth/login" 
