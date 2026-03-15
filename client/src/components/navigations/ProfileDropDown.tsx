@@ -74,12 +74,14 @@ export default function ProfileDropdown({
           { icon: Heart, label: 'Wishlist', href: '/tenant/wishlist' },
           { icon: Calendar, label: 'My Visits', href: '/tenant/visits' },
           { icon: MessageCircle, label: 'Inquiries', href: '/tenant/inquiries' },
+          { icon: Building2, label: 'Analytics', href: '/tenant/analytics' },
         ];
       case 'landlord':
         return [
           { icon: Building2, label: 'Dashboard', href: '/landlord/dashboard' },
           { icon: Building2, label: 'My Properties', href: '/landlord/properties' },
           { icon: MessageCircle, label: 'Leads', href: '/landlord/leads' },
+          { icon: Building2, label: 'Agreements', href: '/landlord/agreements' },
         ];
       case 'admin':
         return [

@@ -11,6 +11,7 @@ export function useSyncUser() {
 
   useEffect(() => {
     if (!isSignedIn || !user || hasSynced.current) return;
+    // console.log(user);
 
     const syncUserWithBackend = async () => {
       try {
@@ -25,7 +26,7 @@ export function useSyncUser() {
           {
             email: user.primaryEmailAddress?.emailAddress,
             // user.fullName is automatically provided by Clerk (combines first & last)
-            fullName: user.fullName,
+            fullName: user.fullName ?? user.username,
             avatarUrl: user.imageUrl,
             role: "TENANT",
           },

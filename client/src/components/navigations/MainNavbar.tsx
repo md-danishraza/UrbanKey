@@ -70,7 +70,8 @@ export default function MainNavbar() {
         bgColor: "#1A0B2E", textColor: "#fff",
         links: [
           { label: "Dashboard", href: "/admin/dashboard" },
-          { label: "Verifications", href: "/admin/verifications" }
+          { label: "Verifications", href: "/admin/verifications" },
+          { icon: Building2, label: 'Analytics', href: '/admin/analytics' },
         ]
       });
     }
