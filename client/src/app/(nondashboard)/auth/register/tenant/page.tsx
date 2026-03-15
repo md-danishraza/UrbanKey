@@ -6,7 +6,7 @@ export default function TenantRegisterPage() {
   return (
     <div className={cn(
       styles.authContainer, 
-      "flex items-center justify-center p-4 min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-50/50 to-cyan-50/50"
+      " flex items-center justify-center p-4 min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-50/50 to-cyan-50/50"
     )}>
       
       {/* Decorative Background Shapes */}

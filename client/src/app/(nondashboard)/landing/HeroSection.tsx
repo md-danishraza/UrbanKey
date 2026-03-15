@@ -18,7 +18,7 @@ function HeroSection() {
   ];
 
   return (
-    <div className="relative w-full h-[calc(100vh-64px)] min-h-[600px] flex items-center justify-center overflow-hidden bg-black">
+    <div className=" relative w-full h-[100vh] min-h-[600px] flex items-center justify-center overflow-hidden bg-black">
       {/* Background Image with Parallax Effect */}
       <motion.div 
         className="absolute inset-0 z-0"

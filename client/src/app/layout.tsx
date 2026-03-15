@@ -3,6 +3,7 @@ import { DM_Sans} from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import Navbar from "@/components/common/Navbar";
+import MainNavbar from "@/components/navigations/MainNavbar";
 
 const dmSans = DM_Sans({
   subsets:["latin"],
@@ -30,11 +31,12 @@ export default function RootLayout({
       >
         <Providers>
         <div className="h-full w-full">
-        <Navbar />
-        <main className={`pt-16 h-full flex w-full flex-col`}>
-          {children}
+          {/* <Navbar/> */}
+          <MainNavbar/>
+          <main className={`pt-16 md:pt-18   h-full flex w-full flex-col`}>
+            {children}
           </main>
-          </div>
+        </div>
         </Providers>
       </body>
     </html>
