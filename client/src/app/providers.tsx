@@ -28,9 +28,9 @@ const Providers = ({ children }: { children: React.ReactNode }) => {
       <Suspense fallback={<LoadingSpinner/>}>
         <TooltipProvider>
           {/* Wrap children with the User Sync Provider */}
-          <UserSyncProvider>
+          {/* <UserSyncProvider> */}
               {children}
-            </UserSyncProvider>
+            {/* </UserSyncProvider> */}
           <Toaster richColors closeButton />
         </TooltipProvider>
       </Suspense>
