@@ -31,7 +31,28 @@ model User {
   agreements RentAgreement[]  @relation("LandlordAgreements")
   analytics  AnalyticsEvent[]
 
+  // onboarding
+  onboardingCompleted Boolean             @default(false) @map("onboarding_completed")
+  onboardingProgress  OnboardingProgress?
+
   @@map("users")
+  @@schema("urbankey")
+}
+
+model OnboardingProgress {
+  id             String    @id @default(cuid())
+  userId         String    @unique @map("user_id")
+  currentStep    String    @map("current_step")
+  completedSteps Json      @default("[]")
+  data           Json      @default("{}")
+  completed      Boolean   @default(false)
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("onboarding_progress")
   @@schema("urbankey")
 }
 

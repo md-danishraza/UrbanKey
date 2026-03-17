@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useUser, useAuth } from "@clerk/nextjs";
-import { apiClient } from "@/lib/api-client";
+import { apiClient } from "@/lib/api/api-client";
 import { usePathname } from "next/navigation";
 
 export function useSyncUser() {

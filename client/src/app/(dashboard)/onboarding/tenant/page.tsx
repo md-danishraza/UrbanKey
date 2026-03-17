@@ -1,127 +1,145 @@
 'use client';
 
-import { useState } from 'react';
+import {  useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
-import { Home, Shield, CheckCircle, ArrowRight } from 'lucide-react';
+import { Home, Shield, CheckCircle, ArrowRight, User, Phone, MapPin, Calendar, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 import { Progress } from '@/components/ui/progress';
 import { DocumentUpload } from '@/components/onboarding/DocumentUpload';
-import { ProfileForm } from '@/components/onboarding/ProfileForm';
+import { OnboardingProvider, useOnboarding } from '@/contexts/OnboardingContext';
+import { apiClient } from '@/lib/api/api-client';
 import { updateUserRole, uploadVerificationDocument } from '@/app/actions/auth';
 import { cn } from '@/lib/utils';
-import { apiClient } from '@/lib/api-client';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
-type Step = 'profile' | 'documents' | 'preferences' | 'complete';
+const steps = [
+  { id: 'profile', label: 'Profile', icon: User },
+  { id: 'documents', label: 'Documents', icon: Shield },
+  { id: 'preferences', label: 'Preferences', icon: Home },
+  { id: 'complete', label: 'Complete', icon: CheckCircle },
+];
 
-export default function TenantOnboarding() {
-  const { getToken } = useAuth();
+function TenantOnboardingContent() {
   const router = useRouter();
   const { user } = useUser();
-  const [currentStep, setCurrentStep] = useState<Step>('profile');
-  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const { getToken } = useAuth();
+  const { currentStep, completedSteps, data,isLoading, completeStep, goToNextStep, finishOnboarding } = useOnboarding();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    fullName: data?.fullName || user?.fullName || '',
+    phone: data?.phone || '',
+    preferredLocations: data?.preferredLocations || '',
+    maxBudget: data?.maxBudget || '',
+    moveInDate: data?.moveInDate || '',
+  });
 
-  const steps = [
-    { id: 'profile', label: 'Profile', icon: Home },
-    { id: 'documents', label: 'Documents', icon: Shield },
-    { id: 'preferences', label: 'Preferences', icon: Home },
-    { id: 'complete', label: 'Complete', icon: CheckCircle },
-  ];
+  // Show loader while initial data is loading
+  if (isLoading) {
+    return <LoadingSpinner/>  ;
+  }
 
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
-  
-    const handleProfileSubmit = async (data: any) => {
-      try {
-        // 1. Update Clerk metadata with tenant role
-        const formData = new FormData();
-        formData.append('role', 'tenant');
-        formData.append('fullName', data.fullName);
-        formData.append('phone', data.phone);
-        
-        const result = await updateUserRole(formData);
-        
-        if (result.success) {
-          // 2. EXPLICITLY SYNC TO BACKEND HERE
-          const token = await getToken();
-          
-          await apiClient.post(
-            "/api/users/sync",
-            {
-              email: user?.primaryEmailAddress?.emailAddress,
-              fullName: data.fullName,
-              phone: data.phone,
-              avatarUrl: user?.imageUrl,
-              role: 'tenant',
-            },
-            token
-          );
-          
-          console.log("✅ Tenant synced to backend during onboarding");
-          
-          setCompletedSteps(prev => [...prev, 'profile']);
-          setCurrentStep('documents');
-        }
-      } catch (error) {
-        console.error('Profile submission error:', error);
-      }
-    };
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      // Update Clerk metadata
+      const formDataObj = new FormData();
+      formDataObj.append('role', 'tenant');
+      formDataObj.append('fullName', formData.fullName);
+      formDataObj.append('phone', formData.phone);
+      
+      await updateUserRole(formDataObj);
+
+      // Sync to backend
+      const token = await getToken();
+      await apiClient.post(
+        '/api/users/sync',
+        {
+          email: user?.primaryEmailAddress?.emailAddress,
+          fullName: formData.fullName,
+          phone: formData.phone,
+          avatarUrl: user?.imageUrl,
+          role: 'TENANT',
+        },
+        token
+      );
+
+      await completeStep('profile', formData);
+      await goToNextStep();
+    } catch (error) {
+      console.error('Profile submission error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDocumentUpload = async (file: File) => {
-    const formData = new FormData();
-    formData.append('documentType', 'aadhar');
-    formData.append('file', file);
-    
-    const result = await uploadVerificationDocument(formData);
-    
-    if (result.success) {
-      setCompletedSteps(prev => [...prev, 'documents']);
-      setCurrentStep('preferences');
+    setLoading(true);
+    try {
+      // Upload to your backend/storage here
+      // from server actions 
+      // uploadVerificationDocument(formData)
+      console.log('Uploading document:', file.name);
+      
+      await completeStep('documents', { documentUploaded: true });
+      await goToNextStep();
+    } catch (error) {
+      console.error('Document upload error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handlePreferencesSubmit = async () => {
-    // Save preferences to backend
-    setCompletedSteps(prev => [...prev, 'preferences']);
-    setCurrentStep('complete');
+    setLoading(true);
+    try {
+      await completeStep('preferences', {
+        preferredLocations: formData.preferredLocations,
+        maxBudget: formData.maxBudget,
+        moveInDate: formData.moveInDate,
+      });
+      await goToNextStep();
+    } catch (error) {
+      console.error('Preferences submission error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleComplete = () => {
-    // Final sync to ensure everything is up to date
-    const finalSync = async () => {
-      const token = await getToken();
-      await apiClient.post(
-        "/api/users/sync",
-        {
-          email: user?.primaryEmailAddress?.emailAddress,
-          fullName: user?.fullName,
-          avatarUrl: user?.imageUrl,
-          role: 'tenant',
-          onboardingCompleted: true
-        },
-        token
-      );
-    };
-    
-    finalSync();
+  const handleComplete = async () => {
+    await finishOnboarding('tenant');
     router.push('/properties/search');
   };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.id]: e.target.value
+    }));
+  };
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4">
       <div className="max-w-3xl mx-auto">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8"
         >
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Welcome to UrbanKey, {user?.firstName}!
+            Welcome to UrbanKey!
           </h1>
           <p className="text-gray-600 mt-2">
             Let's set up your tenant profile in a few steps
@@ -132,7 +150,7 @@ export default function TenantOnboarding() {
         <div className="mb-8">
           <Progress value={progress} className="h-2" />
           <div className="flex justify-between mt-2">
-            {steps.map((step, idx) => {
+            {steps.map((step) => {
               const StepIcon = step.icon;
               const isCompleted = completedSteps.includes(step.id);
               const isActive = currentStep === step.id;
@@ -175,7 +193,49 @@ export default function TenantOnboarding() {
                 <h2 className="text-2xl font-semibold">Complete Your Profile</h2>
                 <p className="text-gray-600">Tell us a bit about yourself</p>
               </div>
-              <ProfileForm role="tenant" onSubmit={handleProfileSubmit} />
+
+              <form onSubmit={handleProfileSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name *</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="fullName"
+                      value={formData.fullName}
+                      onChange={handleChange}
+                      className="pl-10"
+                      placeholder="Enter your full name"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number *</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className="pl-10"
+                      placeholder="+91 98765 43210"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save & Continue'
+                  )}
+                </Button>
+              </form>
             </div>
           )}
 
@@ -188,18 +248,14 @@ export default function TenantOnboarding() {
               
               <DocumentUpload
                 title="Aadhar Card"
-                description="Upload a clear image of your Aadhar card (front & back)"
+                description="Upload a clear image of your Aadhar card"
                 documentType="aadhar"
                 onUpload={handleDocumentUpload}
                 onSkip={() => {
-                  setCompletedSteps(prev => [...prev, 'documents']);
-                  setCurrentStep('preferences');
+                  completeStep('documents', { skipped: true });
+                  goToNextStep();
                 }}
               />
-
-              <p className="text-xs text-gray-500 text-center mt-4">
-                Your documents are encrypted and securely stored
-              </p>
             </div>
           )}
 
@@ -211,10 +267,55 @@ export default function TenantOnboarding() {
               </div>
 
               <div className="space-y-4">
-                {/* Add preference form here */}
-                <Button onClick={handlePreferencesSubmit} className="w-full">
-                  Continue to Dashboard
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                <div className="space-y-2">
+                  <Label htmlFor="preferredLocations">Preferred Locations</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="preferredLocations"
+                      value={formData.preferredLocations}
+                      onChange={handleChange}
+                      className="pl-10"
+                      placeholder="e.g., Whitefield, Indiranagar"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="maxBudget">Max Budget (₹)</Label>
+                    <Input
+                      id="maxBudget"
+                      type="number"
+                      value={formData.maxBudget}
+                      onChange={handleChange}
+                      placeholder="50000"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="moveInDate">Move-in Date</Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="moveInDate"
+                        type="date"
+                        value={formData.moveInDate}
+                        onChange={handleChange}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Button onClick={handlePreferencesSubmit} className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Continue'
+                  )}
                 </Button>
               </div>
             </div>
@@ -238,5 +339,13 @@ export default function TenantOnboarding() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function TenantOnboardingPage() {
+  return (
+    <OnboardingProvider role="tenant">
+      <TenantOnboardingContent />
+    </OnboardingProvider>
   );
 }

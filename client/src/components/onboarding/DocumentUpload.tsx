@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, Check, AlertCircle, Loader2, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,6 +28,7 @@ export function DocumentUpload({
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -73,6 +73,18 @@ export function DocumentUpload({
     }
   };
 
+  const clearFile = () => {
+    setFile(null);
+    setPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-6">
@@ -84,21 +96,41 @@ export function DocumentUpload({
 
           {!uploaded ? (
             <>
+              {/* Hidden File Input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+                disabled={uploading}
+              />
+
               {/* Upload Area */}
               <div
+                onClick={triggerFileInput}
                 className={cn(
-                  "border-2 border-dashed rounded-lg p-6 transition-colors",
-                  preview ? "border-green-500 bg-green-50" : "border-gray-300 hover:border-primary"
+                  "border-2 border-dashed rounded-lg p-6 transition-all cursor-pointer relative",
+                  preview ? "border-green-500 bg-green-50" : "border-gray-300 hover:border-primary hover:bg-gray-50"
                 )}
               >
                 {preview ? (
-                  <div className="space-y-3">
+                  <div className="space-y-3 relative">
                     <img 
                       src={preview} 
                       alt="Preview" 
                       className="max-h-40 mx-auto rounded-lg object-contain"
                     />
                     <p className="text-sm text-gray-600 text-center">{file?.name}</p>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearFile();
+                      }}
+                      className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
                 ) : (
                   <div className="text-center">
@@ -111,14 +143,6 @@ export function DocumentUpload({
                     </p>
                   </div>
                 )}
-
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  disabled={uploading}
-                />
               </div>
 
               {error && (

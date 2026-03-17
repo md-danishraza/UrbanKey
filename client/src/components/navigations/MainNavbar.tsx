@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useUser, UserButton } from '@clerk/nextjs';
 import Link from 'next/link';
-import { Heart, Calendar, MessageCircle, Building2, Shield, FileText } from 'lucide-react';
+import { Heart, Calendar, MessageCircle, Building2, Shield, FileText, User } from 'lucide-react';
 
 import PillNav from './PillNav';
 import CardNav from './CardNav';
@@ -98,15 +98,20 @@ export default function MainNavbar() {
       }}
     >
       <UserButton.MenuItems>
+        {/* Tenant Links */}
         {userRole === 'tenant' && <UserButton.Link label="Wishlist" href="/tenant/wishlists" labelIcon={<Heart className="w-4 h-4" />} />}
         {userRole === 'tenant' && <UserButton.Link label="My Visits" href="/tenant/visits" labelIcon={<Calendar className="w-4 h-4" />} />}
         {userRole === 'tenant' && <UserButton.Link label="Enquiries" href="/tenant/enquiries" labelIcon={<MessageCircle className="w-4 h-4" />} />}
+        {userRole === 'tenant' && <UserButton.Link label="Onboarding" href="/onboarding/tenant" labelIcon={<User className="w-4 h-4" />} />}
         
+        {/* Landlord Links */}
         {userRole === 'landlord' && <UserButton.Link label="Dashboard" href="/landlord/dashboard" labelIcon={<Building2 className="w-4 h-4" />} />}
         {userRole === 'landlord' && <UserButton.Link label="My Properties" href="/landlord/properties" labelIcon={<Building2 className="w-4 h-4" />} />}
         {userRole === 'landlord' && <UserButton.Link label="Leads" href="/landlord/leads" labelIcon={<MessageCircle className="w-4 h-4" />} />}
         {userRole === 'landlord' && <UserButton.Link label="Agreements" href="/landlord/agreements" labelIcon={<FileText className="w-4 h-4" />} />}
+        {userRole === 'landlord' && <UserButton.Link label="Onboarding" href="/onboarding/landlord" labelIcon={<User className="w-4 h-4" />} />}
         
+        {/* Admin Links */}
         {userRole === 'admin' && <UserButton.Link label="Verifications" href="/admin/verifications" labelIcon={<Shield className="w-4 h-4" />} />}
       </UserButton.MenuItems>
     </UserButton>
