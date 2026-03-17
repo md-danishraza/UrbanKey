@@ -9,6 +9,7 @@ import propertyRoutes from "./routes/property.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 import testRoutes from "./routes/test.routes.js";
+import documentRoutes from "./routes/document.routes.js";
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/onboarding", onBoardingRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/documents", documentRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

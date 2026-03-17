@@ -106,34 +106,66 @@ function LandlordOnboardingContent() {
   const handleDocumentUpload = async (file: File) => {
     setSubmitting(true);
     try {
-      // Upload document to backend/storage
       const token = await getToken();
-      const formData = new FormData();
-      formData.append('documentType', 'aadhar');
-      formData.append('file', file);
+    
+      // Create FormData for direct backend upload
+      const uploadData = new FormData();
+      uploadData.append('documentType', 'aadhar');
+      uploadData.append('file', file);
       
-      // You would upload to your storage here
-      console.log('Uploading document:', file.name);
-      
-      // Update backend with document status
-      await apiClient.post(
-        '/api/landlord/documents',
+      // Upload directly to backend API (bypasses Server Action)
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/documents/upload`,
         {
-          type: 'aadhar',
-          fileName: file.name,
-          uploadedAt: new Date().toISOString(),
-          status: 'pending'
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            // Don't set Content-Type - browser will set it with boundary
+          },
+          body: uploadData,
+        }
+      );
+  
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Upload failed');
+      }
+  
+      const result = await response.json();
+  
+      console.log('Document uploaded successfully:', result.document);
+
+
+      await apiClient.post(
+        '/api/users/sync',
+        {
+          email: user?.primaryEmailAddress?.emailAddress,
+          fullName:  user?.fullName || user?.username,
+          role: 'LANDLORD',
+          verificationDocs: {
+            aadhar: {
+              url: result.document.fileUrl,
+              status: 'PENDING',
+              uploadedAt: new Date().toISOString(),
+            }
+          }
         },
         token
       );
       
+      
       await completeStep('documents', { 
         aadharUploaded: true,
-        aadharFileName: file.name 
+        aadharFileName: file.name,
+        aadharUrl: result.document.fileUrl,
+        documentStatus: result.document.status
       });
+      
       await goToNextStep();
     } catch (error) {
       console.error('Document upload error:', error);
+      // Show error to user
+      alert('Failed to upload document. Please try again.');
     } finally {
       setSubmitting(false);
     }

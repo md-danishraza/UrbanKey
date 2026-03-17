@@ -30,12 +30,35 @@ model User {
   leads      Lead[]
   agreements RentAgreement[]  @relation("LandlordAgreements")
   analytics  AnalyticsEvent[]
+  documents  UserDocument[]
 
   // onboarding
   onboardingCompleted Boolean             @default(false) @map("onboarding_completed")
   onboardingProgress  OnboardingProgress?
 
   @@map("users")
+  @@schema("urbankey")
+}
+
+model UserDocument {
+  id           String         @id @default(cuid())
+  userId       String         @map("user_id")
+  documentType String         @map("document_type") // 'aadhar', 'pan', 'property', etc.
+  fileUrl      String         @map("file_url")
+  fileName     String         @map("file_name")
+  fileSize     Int            @map("file_size")
+  mimeType     String         @map("mime_type")
+  status       DocumentStatus @default(PENDING)
+  uploadedAt   DateTime       @default(now()) @map("uploaded_at")
+  verifiedAt   DateTime?      @map("verified_at")
+  verifiedBy   String?        @map("verified_by")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, documentType])
+  @@map("user_documents")
   @@schema("urbankey")
 }
 
@@ -273,6 +296,14 @@ enum LeadStatus {
   CONTACTED
   CONVERTED
   CLOSED
+
+  @@schema("urbankey")
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
 
   @@schema("urbankey")
 }

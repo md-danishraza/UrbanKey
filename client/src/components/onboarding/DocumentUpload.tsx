@@ -13,7 +13,7 @@ interface DocumentUploadProps {
   description: string;
   documentType: string;
   onUpload: (file: File) => Promise<void>;
-  onSkip?: () => void;
+  // onSkip?: () => void;
 }
 
 export function DocumentUpload({ 
@@ -21,7 +21,7 @@ export function DocumentUpload({
   description, 
   documentType, 
   onUpload,
-  onSkip 
+  // onSkip 
 }: DocumentUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -168,11 +168,7 @@ export function DocumentUpload({
                   )}
                 </Button>
                 
-                {onSkip && (
-                  <Button variant="ghost" onClick={onSkip}>
-                    Skip for now
-                  </Button>
-                )}
+    
               </div>
             </>
           ) : (

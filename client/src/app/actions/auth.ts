@@ -45,39 +45,54 @@ export async function updateUserRole(formData: FormData) {
   }
 }
 
-export async function uploadVerificationDocument(formData: FormData) {
-  try {
-    const { userId } = await auth();
+// export async function uploadVerificationDocument(formData: FormData) {
+//   try {
+//     const { userId } = await auth();
 
-    if (!userId) {
-      return { success: false, error: "Unauthorized" };
-    }
+//     if (!userId) {
+//       return { success: false, error: "Unauthorized" };
+//     }
 
-    const documentType = formData.get("documentType") as string;
-    const file = formData.get("file") as File;
+//     const documentType = formData.get("documentType") as string;
+//     const file = formData.get("file") as File;
 
-    if (!documentType || !file) {
-      return { success: false, error: "Missing document type or file" };
-    }
+//     if (!documentType || !file) {
+//       return { success: false, error: "Missing document type or file" };
+//     }
 
-    // Here you would upload to your backend/storage
-    // For now, we'll just update Clerk metadata
-    const client = await clerkClient();
+//     // Create a new FormData for the backend
+//     const backendFormData = new FormData();
+//     backendFormData.append("file", file);
+//     backendFormData.append("documentType", documentType);
 
-    await client.users.updateUser(userId, {
-      publicMetadata: {
-        verificationDocs: {
-          [documentType]: {
-            uploadedAt: new Date().toISOString(),
-            status: "pending",
-          },
-        },
-      },
-    });
+//     // Get token for API call
+//     const token = await auth().then((a) => a.getToken());
 
-    return { success: true };
-  } catch (error) {
-    console.error("Error uploading document:", error);
-    return { success: false, error: "Failed to upload document" };
-  }
-}
+//     // Upload to your backend
+//     const response = await fetch(
+//       `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/documents/upload`,
+//       {
+//         method: "POST",
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//         },
+//         body: backendFormData,
+//       }
+//     );
+
+//     if (!response.ok) {
+//       const error = await response.json();
+//       throw new Error(error.error || "Upload failed");
+//     }
+
+//     const data = await response.json();
+
+//     return {
+//       success: true,
+//       document: data.document,
+//     };
+//   } catch (error) {
+//     console.error("Error uploading document:", error);
+//     return { success: false, error: "Failed to upload document" };
+//   }
+// }

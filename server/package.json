@@ -28,6 +28,7 @@
     "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.1",
     "@supabase/supabase-js": "^2.99.2",
+    "@types/multer": "^2.1.0",
     "@types/node": "^25.0.9",
     "@types/uuid": "^10.0.0",
     "axios": "^1.13.5",
@@ -35,6 +36,7 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "morgan": "^1.10.1",
+    "multer": "^2.1.1",
     "pg": "^8.18.0",
     "svix": "^1.86.0",
     "uuid": "^13.0.0"

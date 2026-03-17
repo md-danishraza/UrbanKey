@@ -14,7 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import { DocumentUpload } from '@/components/onboarding/DocumentUpload';
 import { OnboardingProvider, useOnboarding } from '@/contexts/OnboardingContext';
 import { apiClient } from '@/lib/api/api-client';
-import { updateUserRole, uploadVerificationDocument } from '@/app/actions/auth';
+import { updateUserRole } from '@/app/actions/auth';
 import { cn } from '@/lib/utils';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
@@ -88,15 +88,68 @@ function TenantOnboardingContent() {
   const handleDocumentUpload = async (file: File) => {
     setLoading(true);
     try {
-      // Upload to your backend/storage here
-      // from server actions 
-      // uploadVerificationDocument(formData)
-      console.log('Uploading document:', file.name);
+      // Create FormData for server action
+      const uploadData = new FormData();
+    uploadData.append('documentType', 'aadhar');
+    uploadData.append('file', file);
+      // Sync with backend
+      const token = await getToken();
       
-      await completeStep('documents', { documentUploaded: true });
+       // Upload directly to backend API (bypasses Server Action)
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/documents/upload`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // Don't set Content-Type - browser will set it with boundary
+        },
+        body: uploadData,
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Upload failed');
+    }
+
+    const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Upload failed');
+      }
+  
+      console.log('Document uploaded successfully:', result.document);
+      
+      
+      await apiClient.post(
+        '/api/users/sync',
+        {
+          email: user?.primaryEmailAddress?.emailAddress,
+          fullName:  user?.fullName || user?.username,
+          role: 'TENANT',
+          verificationDocs: {
+            aadhar: {
+              url: result.document.fileUrl,
+              status: 'PENDING',
+              uploadedAt: new Date().toISOString(),
+            }
+          }
+        },
+        token
+      );
+      
+      await completeStep('documents', { 
+        documentUploaded: true,
+        documentUrl: result.document.fileUrl,
+        documentStatus: result.document.status
+      });
+      
       await goToNextStep();
     } catch (error) {
       console.error('Document upload error:', error);
+      // Show error to user
+      alert('Failed to upload document. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -253,10 +306,10 @@ function TenantOnboardingContent() {
                 description="Upload a clear image of your Aadhar card"
                 documentType="aadhar"
                 onUpload={handleDocumentUpload}
-                onSkip={() => {
-                  completeStep('documents', { skipped: true });
-                  goToNextStep();
-                }}
+                // onSkip={() => {
+                //   completeStep('documents', { skipped: true });
+                //   goToNextStep();
+                // }}
               />
             </div>
           )}
