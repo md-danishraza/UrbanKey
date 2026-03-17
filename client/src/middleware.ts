@@ -21,46 +21,16 @@ const isAuthRoute = createRouteMatcher([
   "/auth/register(.*)",
 ]);
 
-// 3. Define role-specific protected routes
+// 3. Define role-specific protected routes (require specific roles)
 const isTenantRoute = createRouteMatcher(["/tenant(.*)"]);
-
 const isLandlordRoute = createRouteMatcher(["/landlord(.*)"]);
-
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
-// 4. Onboarding routes (require auth but special handling)
+// 4. Onboarding routes
 const isOnboardingRoute = createRouteMatcher(["/onboarding(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims, redirectToSignIn } = await auth();
-
-  console.log(sessionClaims?.publicMetadata);
-
-  // Protect Onboarding Routes in Middleware
-  if (userId) {
-    const metadata =
-      (sessionClaims?.publicMetadata as Record<string, any>) || {};
-    const role = (metadata.role as string)?.toLowerCase() || "tenant";
-
-    // Prevent tenant from accessing landlord onboarding and vice versa
-    if (isOnboardingRoute(req)) {
-      const onboardingRole = req.nextUrl.pathname.split("/")[2]; // /onboarding/tenant or /onboarding/landlord
-
-      if (onboardingRole && onboardingRole !== role) {
-        // Redirect to correct onboarding
-        return NextResponse.redirect(new URL(`/onboarding/${role}`, req.url));
-      }
-
-      // If user already completed onboarding, redirect to dashboard
-      if (metadata.onboardingCompleted) {
-        const dashboardUrl =
-          role === "tenant" ? "/properties/search" : "/landlord/dashboard";
-        return NextResponse.redirect(new URL(dashboardUrl, req.url));
-      }
-
-      return NextResponse.next();
-    }
-  }
 
   // 1. Redirect authenticated users away from auth pages
   if (userId && isAuthRoute(req)) {
@@ -69,52 +39,52 @@ export default clerkMiddleware(async (auth, req) => {
 
   // 2. Protect all non-public routes (Force sign-in)
   if (!userId && !isPublicRoute(req)) {
-    // Clerk's built-in redirect handles the ?redirect_url automatically!
     return redirectToSignIn({ returnBackUrl: req.url });
   }
 
-  // 3. Role-based access control for authenticated users
+  // 3. For authenticated users, handle role-based access
   if (userId) {
-    // Safely extract the role from the custom session claims we configured in the dashboard
-    // We cast it to a generic object to avoid TypeScript complaining about custom claim types
     const metadata =
       (sessionClaims?.publicMetadata as Record<string, any>) || {};
     const role = (metadata.role as string)?.toLowerCase() || "tenant";
-    const isVerified = metadata.isVerified === true;
 
-    // Allow access to onboarding routes so the server can actually set their role!
+    // Handle onboarding routes - allow access regardless of completion status
     if (isOnboardingRoute(req)) {
+      const onboardingRole = req.nextUrl.pathname.split("/")[2];
+
+      // Redirect to correct onboarding if role mismatch
+      if (onboardingRole && onboardingRole !== role) {
+        return NextResponse.redirect(new URL(`/onboarding/${role}`, req.url));
+      }
+
+      // Always allow access to onboarding - no completion checks
       return NextResponse.next();
     }
 
-    // Protect Tenant Routes
+    // Role-based access control for protected routes
+    // These are the ONLY routes that should be blocked by role
+
+    // Protect Tenant Routes - only tenants and admins can access
     if (isTenantRoute(req) && role !== "tenant" && role !== "admin") {
       return NextResponse.redirect(new URL("/", req.url));
     }
 
-    // Protect Landlord Routes
+    // Protect Landlord Routes - only landlords and admins can access
     if (isLandlordRoute(req) && role !== "landlord" && role !== "admin") {
       return NextResponse.redirect(new URL("/", req.url));
     }
 
-    // Protect Admin Routes
+    // Protect Admin Routes - only admins can access
     if (isAdminRoute(req) && role !== "admin") {
       return NextResponse.redirect(new URL("/", req.url));
     }
 
-    // Example Verification Check for Landlords listing new properties
-    if (
-      req.nextUrl.pathname.includes("/landlord/properties/new") &&
-      role === "landlord" &&
-      !isVerified
-    ) {
-      // Send them to a page explaining they need admin verification first
-      return NextResponse.redirect(
-        new URL("/landlord/verification-pending", req.url)
-      );
-    }
+    // ❌ REMOVED: The onboarding completion check that was blocking all routes
+    // Users can now access public routes and their role-specific routes
+    // regardless of onboarding completion status
   }
 
+  // Allow access to all other routes
   return NextResponse.next();
 });
 

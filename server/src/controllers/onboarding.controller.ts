@@ -99,3 +99,35 @@ export const completeOnboarding = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// Check if user has completed onboarding
+export const checkOnboardingStatus = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const progress = await prisma.onboardingProgress.findUnique({
+      where: { userId },
+    });
+
+    // Also check if user exists and has completed flag
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { onboardingCompleted: true },
+    });
+
+    res.json({
+      success: true,
+      completed: progress?.completed || user?.onboardingCompleted || false,
+      progress: progress || null,
+    });
+  } catch (error) {
+    console.error("Error checking onboarding status:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};

@@ -524,7 +524,7 @@ function LandlordOnboardingContent() {
 
 export default function LandlordOnboardingPage() {
   return (
-    <OnboardingProvider role="landlord">
+    <OnboardingProvider >
       <LandlordOnboardingContent />
     </OnboardingProvider>
   );

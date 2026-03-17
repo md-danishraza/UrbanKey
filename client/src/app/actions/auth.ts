@@ -14,28 +14,29 @@ export async function updateUserRole(formData: FormData) {
     const role = formData.get("role") as string;
     const fullName = formData.get("fullName") as string;
     const phone = formData.get("phone") as string;
-
-    if (!role || !["tenant", "landlord"].includes(role)) {
-      return { success: false, error: "Invalid role" };
-    }
+    const onboardingCompleted = formData.get("onboardingCompleted") === "true";
 
     const client = await clerkClient();
 
     // Update user metadata in Clerk
-    await client.users.updateUser(userId, {
+    const updateData: any = {
       publicMetadata: {
-        role,
-        onboardingCompleted: true,
+        ...(role && { role }),
+        ...(onboardingCompleted && { onboardingCompleted: true }),
         updatedAt: new Date().toISOString(),
       },
-      ...(fullName && {
-        firstName: fullName.split(" ")[0],
-        lastName: fullName.split(" ").slice(1).join(" "),
-      }),
-      ...(phone && { phoneNumber: phone }),
-    });
+    };
 
-    revalidatePath("/onboarding");
+    if (fullName) {
+      updateData.firstName = fullName.split(" ")[0];
+      updateData.lastName = fullName.split(" ").slice(1).join(" ") || " ";
+    }
+
+    if (phone) {
+      updateData.phoneNumber = phone;
+    }
+
+    await client.users.updateUser(userId, updateData);
 
     return { success: true };
   } catch (error) {

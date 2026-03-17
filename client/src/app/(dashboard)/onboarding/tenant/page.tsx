@@ -1,6 +1,6 @@
 'use client';
 
-import {  useState } from 'react';
+import {   useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
@@ -29,7 +29,7 @@ function TenantOnboardingContent() {
   const router = useRouter();
   const { user } = useUser();
   const { getToken } = useAuth();
-  const { currentStep, completedSteps, data,isLoading, completeStep, goToNextStep, finishOnboarding } = useOnboarding();
+  const { currentStep, completedSteps, data,isLoading, completeStep, goToNextStep, finishOnboarding,setStep } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: data?.fullName || user?.fullName || '',
@@ -38,6 +38,8 @@ function TenantOnboardingContent() {
     maxBudget: data?.maxBudget || '',
     moveInDate: data?.moveInDate || '',
   });
+
+  
 
   // Show loader while initial data is loading
   if (isLoading) {
@@ -344,7 +346,7 @@ function TenantOnboardingContent() {
 
 export default function TenantOnboardingPage() {
   return (
-    <OnboardingProvider role="tenant">
+    <OnboardingProvider >
       <TenantOnboardingContent />
     </OnboardingProvider>
   );

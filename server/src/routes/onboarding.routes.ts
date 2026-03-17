@@ -4,6 +4,7 @@ import {
   saveOnboardingProgress,
   getOnboardingProgress,
   completeOnboarding,
+  checkOnboardingStatus,
 } from "../controllers/onboarding.controller.js";
 
 const router = Router();
@@ -14,5 +15,6 @@ router.use(requireAuth);
 router.post("/progress", saveOnboardingProgress);
 router.get("/progress", getOnboardingProgress);
 router.post("/complete", completeOnboarding);
+router.get("/status", checkOnboardingStatus);
 
 export default router;
