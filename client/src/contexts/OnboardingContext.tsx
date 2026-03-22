@@ -12,11 +12,14 @@ interface OnboardingContextType {
   isLoading: boolean;
   isCompleted: boolean;
   setStep: (step: string) => Promise<void>;
-  completeStep: (step: string, stepData?: any) => Promise<void>;
-  goToNextStep: () => Promise<void>;
+  completeAndGoNext: (step: string, stepData?: any) => Promise<void>; // <-- NEW SAFE METHOD
   finishOnboarding: (role: string) => Promise<void>;
   resetOnboarding: () => void;
+  setRole: (role: 'tenant' | 'landlord') => void;
 }
+
+// Unified step orders for both roles
+const UNIFIED_STEPS = ['profile', 'documents', 'agreement', 'complete'];
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
@@ -29,19 +32,19 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isOnboardingPage, setIsOnboardingPage] = useState(false);
+  const [userRole, setUserRole] = useState<'tenant' | 'landlord'>('tenant');
 
-  // Check if current page is onboarding
   useEffect(() => {
     setIsOnboardingPage(pathname?.includes('/onboarding') || false);
+    if (pathname?.includes('/onboarding/landlord')) setUserRole('landlord');
+    else if (pathname?.includes('/onboarding/tenant')) setUserRole('tenant');
   }, [pathname]);
 
-  // Load progress only on onboarding pages
   useEffect(() => {
     if (!isSignedIn || !isOnboardingPage) {
       setIsLoading(false);
       return;
     }
-
     loadProgress();
   }, [isSignedIn, isOnboardingPage]);
 
@@ -56,12 +59,6 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         setCompletedSteps(progress.completedSteps || []);
         setData(progress.data || {});
         setIsCompleted(progress.completed || false);
-      } else {
-        // Reset to default
-        setCurrentStep('profile');
-        setCompletedSteps([]);
-        setData({});
-        setIsCompleted(false);
       }
     } catch (error) {
       console.error('Failed to load onboarding progress:', error);
@@ -70,23 +67,11 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
-  const saveToBackend = async (
-    step: string,
-    steps: string[],
-    stepData: Record<string, any>
-  ) => {
-    if (!isOnboardingPage) return; // Only save on onboarding pages
-    
+  const saveToBackend = async (step: string, steps: string[], stepData: Record<string, any>) => {
+    if (!isOnboardingPage) return;
     try {
       const token = await getToken();
-      await saveProgress(
-        {
-          step,
-          completedSteps: steps,
-          data: { ...data, ...stepData },
-        },
-        token
-      );
+      await saveProgress({ step, completedSteps: steps, data: stepData }, token);
     } catch (error) {
       console.error('Failed to save progress:', error);
     }
@@ -94,35 +79,34 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   const setStep = async (step: string) => {
     setCurrentStep(step);
-    await saveToBackend(step, completedSteps, {});
+    await saveToBackend(step, completedSteps, data);
   };
 
-  const completeStep = async (step: string, stepData?: any) => {
-    const newCompletedSteps = [...completedSteps, step];
+  // FIX: This single method prevents the React state race condition!
+  const completeAndGoNext = async (step: string, stepData?: any) => {
+    // 1. Calculate new state immediately
+    const newCompletedSteps = Array.from(new Set([...completedSteps, step]));
     const newData = { ...data, ...stepData };
     
+    // 2. Determine next step
+    const currentIndex = UNIFIED_STEPS.indexOf(currentStep);
+    const nextStep = currentIndex < UNIFIED_STEPS.length - 1 
+      ? UNIFIED_STEPS[currentIndex + 1] 
+      : currentStep;
+
+    // 3. Update React State
     setCompletedSteps(newCompletedSteps);
     setData(newData);
+    setCurrentStep(nextStep);
     
-    await saveToBackend(currentStep, newCompletedSteps, newData);
+    // 4. Send ONE perfect payload to the backend
+    await saveToBackend(nextStep, newCompletedSteps, newData);
   };
 
-  const goToNextStep = async () => {
-    // We need role to determine steps, but we don't have it here
-    // This will be overridden in the actual onboarding pages
-    const steps = ['profile', 'documents', 'complete'];
-    const currentIndex = steps.indexOf(currentStep);
-    if (currentIndex < steps.length - 1) {
-      const nextStep = steps[currentIndex + 1];
-      setCurrentStep(nextStep);
-      await saveToBackend(nextStep, completedSteps, data);
-    }
-  };
-
-  const finishOnboarding = async (userRole: string) => {
+  const finishOnboarding = async (role: string) => {
     try {
       const token = await getToken();
-      await completeOnboarding(userRole, token);
+      await completeOnboarding(role, token);
       setIsCompleted(true);
     } catch (error) {
       console.error('Failed to complete onboarding:', error);
@@ -139,16 +123,8 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   return (
     <OnboardingContext.Provider
       value={{
-        currentStep,
-        completedSteps,
-        data,
-        isLoading,
-        isCompleted,
-        setStep,
-        completeStep,
-        goToNextStep,
-        finishOnboarding,
-        resetOnboarding,
+        currentStep, completedSteps, data, isLoading, isCompleted,
+        setStep, completeAndGoNext, finishOnboarding, resetOnboarding, setRole: setUserRole,
       }}
     >
       {children}
@@ -158,8 +134,6 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
 export function useOnboarding() {
   const context = useContext(OnboardingContext);
-  if (!context) {
-    throw new Error('useOnboarding must be used within OnboardingProvider');
-  }
+  if (!context) throw new Error('useOnboarding must be used within OnboardingProvider');
   return context;
 }

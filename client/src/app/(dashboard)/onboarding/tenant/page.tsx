@@ -1,17 +1,18 @@
 'use client';
 
-import {   useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
-import { Home, Shield, CheckCircle, ArrowRight, User, Phone, MapPin, Calendar, Loader2 } from 'lucide-react';
+import { User, Shield, FileText, CheckCircle, Phone, Loader2, ArrowRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
 import { Progress } from '@/components/ui/progress';
+
 import { DocumentUpload } from '@/components/onboarding/DocumentUpload';
+import { AgreementForm } from '@/components/onboarding/AgreementForm';
 import { OnboardingProvider, useOnboarding } from '@/contexts/OnboardingContext';
 import { apiClient } from '@/lib/api/api-client';
 import { updateUserRole } from '@/app/actions/auth';
@@ -21,7 +22,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 const steps = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'documents', label: 'Documents', icon: Shield },
-  { id: 'preferences', label: 'Preferences', icon: Home },
+  { id: 'agreement', label: 'Agreement', icon: FileText },
   { id: 'complete', label: 'Complete', icon: CheckCircle },
 ];
 
@@ -29,22 +30,15 @@ function TenantOnboardingContent() {
   const router = useRouter();
   const { user } = useUser();
   const { getToken } = useAuth();
-  const { currentStep, completedSteps, data,isLoading, completeStep, goToNextStep, finishOnboarding,setStep } = useOnboarding();
+  const { currentStep, completedSteps, data, isLoading, completeAndGoNext, finishOnboarding } = useOnboarding();
   const [loading, setLoading] = useState(false);
+  
   const [formData, setFormData] = useState({
     fullName: data?.fullName || user?.fullName || '',
     phone: data?.phone || '',
-    preferredLocations: data?.preferredLocations || '',
-    maxBudget: data?.maxBudget || '',
-    moveInDate: data?.moveInDate || '',
   });
 
-  
-
-  // Show loader while initial data is loading
-  if (isLoading) {
-    return <LoadingSpinner/>  ;
-  }
+  if (isLoading) return <LoadingSpinner />;
 
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
@@ -54,30 +48,22 @@ function TenantOnboardingContent() {
     setLoading(true);
     
     try {
-      // Update Clerk metadata
       const formDataObj = new FormData();
       formDataObj.append('role', 'tenant');
       formDataObj.append('fullName', formData.fullName);
       formDataObj.append('phone', formData.phone);
-      
       await updateUserRole(formDataObj);
 
-      // Sync to backend
       const token = await getToken();
-      await apiClient.post(
-        '/api/users/sync',
-        {
-          email: user?.primaryEmailAddress?.emailAddress,
-          fullName: formData.fullName,
-          phone: formData.phone,
-          avatarUrl: user?.imageUrl,
-          role: 'TENANT',
-        },
-        token
-      );
+      await apiClient.post('/api/users/sync', {
+        email: user?.primaryEmailAddress?.emailAddress,
+        fullName: formData.fullName,
+        phone: formData.phone,
+        avatarUrl: user?.imageUrl,
+        role: 'TENANT',
+      }, token);
 
-      await completeStep('profile', formData);
-      await goToNextStep();
+      await completeAndGoNext('profile', formData);
     } catch (error) {
       console.error('Profile submission error:', error);
     } finally {
@@ -88,99 +74,89 @@ function TenantOnboardingContent() {
   const handleDocumentUpload = async (file: File) => {
     setLoading(true);
     try {
-      // Create FormData for server action
       const uploadData = new FormData();
-    uploadData.append('documentType', 'aadhar');
-    uploadData.append('file', file);
-      // Sync with backend
+      uploadData.append('documentType', 'aadhar');
+      uploadData.append('file', file);
       const token = await getToken();
       
-       // Upload directly to backend API (bypasses Server Action)
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/documents/upload`,
-      {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/documents/upload`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // Don't set Content-Type - browser will set it with boundary
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: uploadData,
-      }
-    );
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Upload failed');
-    }
-
-    const result = await response.json();
+      if (!response.ok) throw new Error((await response.json()).error || 'Upload failed');
+      const result = await response.json();
       
-      if (!result.success) {
-        throw new Error(result.error || 'Upload failed');
-      }
-  
-      console.log('Document uploaded successfully:', result.document);
-      
-      
-      await apiClient.post(
-        '/api/users/sync',
-        {
-          email: user?.primaryEmailAddress?.emailAddress,
-          fullName:  user?.fullName || user?.username,
-          role: 'TENANT',
-          verificationDocs: {
-            aadhar: {
-              url: result.document.fileUrl,
-              status: 'PENDING',
-              uploadedAt: new Date().toISOString(),
-            }
+      await apiClient.post('/api/users/sync', {
+        email: user?.primaryEmailAddress?.emailAddress,
+        fullName:  user?.fullName || user?.username,
+        role: 'TENANT',
+        verificationDocs: {
+          aadhar: {
+            url: result.document.fileUrl,
+            status: 'PENDING',
+            uploadedAt: new Date().toISOString(),
           }
-        },
-        token
-      );
+        }
+      }, token);
       
-      await completeStep('documents', { 
+      await completeAndGoNext('documents', { 
         documentUploaded: true,
         documentUrl: result.document.fileUrl,
         documentStatus: result.document.status
       });
-      
-      await goToNextStep();
     } catch (error) {
       console.error('Document upload error:', error);
-      // Show error to user
       alert('Failed to upload document. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePreferencesSubmit = async () => {
+  const handleAgreementAccept = async () => {
     setLoading(true);
     try {
-      await completeStep('preferences', {
-        preferredLocations: formData.preferredLocations,
-        maxBudget: formData.maxBudget,
-        moveInDate: formData.moveInDate,
+      const token = await getToken();
+      await apiClient.post('/api/agreement/tenant', {
+        acceptedAt: new Date().toISOString(),
+        terms: 'v1',
+        ipAddress: 'client-side',
+      }, token);
+      
+      await completeAndGoNext('agreement', { 
+        agreementAccepted: true,
+        acceptedAt: new Date().toISOString()
       });
-      await goToNextStep();
     } catch (error) {
-      console.error('Preferences submission error:', error);
+      console.error('Agreement submission error:', error);  
     } finally {
       setLoading(false);
     }
   };
 
   const handleComplete = async () => {
-    await finishOnboarding('tenant');
-    router.push('/properties/search');
+    setLoading(true);
+    try {
+      const token = await getToken();
+      
+      // Explicitly call the API here to ensure we catch any backend 500 errors
+      // before redirecting, preventing the "silent fail" bug.
+      await apiClient.post('/api/onboarding/complete', { role: 'tenant' }, token);
+      
+      // Update local React Context state
+      await finishOnboarding('tenant');
+      
+      router.push('/properties/search');
+    } catch (error) {
+      console.error('Completion error:', error);
+      alert("Failed to complete onboarding. Please check your backend terminal for errors!");
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.id]: e.target.value
-    }));
+    setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
   };
 
   if (!user) return null;
@@ -196,9 +172,7 @@ function TenantOnboardingContent() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             Welcome to UrbanKey!
           </h1>
-          <p className="text-gray-600 mt-2">
-            Let's set up your tenant profile in a few steps
-          </p>
+          <p className="text-gray-600 mt-2">Let's set up your tenant profile in a few steps</p>
         </motion.div>
 
         {/* Progress Bar */}
@@ -211,20 +185,8 @@ function TenantOnboardingContent() {
               const isActive = currentStep === step.id;
               
               return (
-                <div
-                  key={step.id}
-                  className={cn(
-                    "flex flex-col items-center text-xs",
-                    isActive ? "text-blue-600 font-medium" : 
-                    isCompleted ? "text-green-600" : "text-gray-400"
-                  )}
-                >
-                  <div className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center mb-1",
-                    isActive ? "bg-blue-100 text-blue-600" :
-                    isCompleted ? "bg-green-100 text-green-600" :
-                    "bg-gray-100 text-gray-400"
-                  )}>
+                <div key={step.id} className={cn("flex flex-col items-center text-xs", isActive ? "text-blue-600 font-medium" : isCompleted ? "text-green-600" : "text-gray-400")}>
+                  <div className={cn("w-8 h-8 rounded-full flex items-center justify-center mb-1", isActive ? "bg-blue-100 text-blue-600" : isCompleted ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400")}>
                     {isCompleted ? <CheckCircle className="h-4 w-4" /> : <StepIcon className="h-4 w-4" />}
                   </div>
                   <span>{step.label}</span>
@@ -248,47 +210,23 @@ function TenantOnboardingContent() {
                 <h2 className="text-2xl font-semibold">Complete Your Profile</h2>
                 <p className="text-gray-600">Tell us a bit about yourself</p>
               </div>
-
               <form onSubmit={handleProfileSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full Name *</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="fullName"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                      className="pl-10"
-                      placeholder="Enter your full name"
-                      required
-                    />
+                    <Input id="fullName" value={formData.fullName} onChange={handleChange} className="pl-10" placeholder="Enter your full name" required />
                   </div>
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number *</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      className="pl-10"
-                      placeholder="+91 98765 43210"
-                      required
-                    />
+                    <Input id="phone" value={formData.phone} onChange={handleChange} className="pl-10" placeholder="+91 98765 43210" required />
                   </div>
                 </div>
-
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save & Continue'
-                  )}
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
+                  {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save & Continue'}
                 </Button>
               </form>
             </div>
@@ -300,80 +238,15 @@ function TenantOnboardingContent() {
                 <h2 className="text-2xl font-semibold">Verification Documents</h2>
                 <p className="text-gray-600">Upload your Aadhar card for verification</p>
               </div>
-              
-              <DocumentUpload
-                title="Aadhar Card"
-                description="Upload a clear image of your Aadhar card"
-                documentType="aadhar"
-                onUpload={handleDocumentUpload}
-                // onSkip={() => {
-                //   completeStep('documents', { skipped: true });
-                //   goToNextStep();
-                // }}
-              />
+              <DocumentUpload title="Aadhar Card" description="Upload a clear image of your Aadhar card" documentType="aadhar" onUpload={handleDocumentUpload} />
             </div>
           )}
 
-          {currentStep === 'preferences' && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-semibold">Your Preferences</h2>
-                <p className="text-gray-600">Help us find your perfect home</p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="preferredLocations">Preferred Locations</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="preferredLocations"
-                      value={formData.preferredLocations}
-                      onChange={handleChange}
-                      className="pl-10"
-                      placeholder="e.g., Whitefield, Indiranagar"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="maxBudget">Max Budget (₹)</Label>
-                    <Input
-                      id="maxBudget"
-                      type="number"
-                      value={formData.maxBudget}
-                      onChange={handleChange}
-                      placeholder="50000"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="moveInDate">Move-in Date</Label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="moveInDate"
-                        type="date"
-                        value={formData.moveInDate}
-                        onChange={handleChange}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <Button onClick={handlePreferencesSubmit} className="w-full" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Continue'
-                  )}
-                </Button>
-              </div>
-            </div>
+          {currentStep === 'agreement' && (
+            <AgreementForm
+              onAccept={handleAgreementAccept}
+              isLoading={loading}
+            />
           )}
 
           {currentStep === 'complete' && (
@@ -382,12 +255,10 @@ function TenantOnboardingContent() {
                 <CheckCircle className="h-10 w-10 text-green-600" />
               </div>
               <h2 className="text-2xl font-bold">You're All Set!</h2>
-              <p className="text-gray-600">
-                Your profile is complete. Start exploring properties that match your preferences.
-              </p>
-              <Button onClick={handleComplete} size="lg" className="mt-4">
-                Start Browsing Properties
-                <ArrowRight className="ml-2 h-4 w-4" />
+              <p className="text-gray-600">Your profile is complete. Start exploring properties.</p>
+              <Button onClick={handleComplete} size="lg" className="mt-4 bg-blue-600 hover:bg-blue-700" disabled={loading}>
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Start Browsing Properties'}
+                {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
               </Button>
             </div>
           )}
@@ -399,7 +270,7 @@ function TenantOnboardingContent() {
 
 export default function TenantOnboardingPage() {
   return (
-    <OnboardingProvider >
+    <OnboardingProvider>
       <TenantOnboardingContent />
     </OnboardingProvider>
   );

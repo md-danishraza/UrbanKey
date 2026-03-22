@@ -11,6 +11,7 @@ import { errorHandler } from "./middleware/error.middleware.js";
 import testRoutes from "./routes/test.routes.js";
 import documentRoutes from "./routes/document.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import agreementRoutes from "./routes/agreement.routes.js";
 
 dotenv.config();
 
@@ -34,6 +35,8 @@ app.use("/api/properties", propertyRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/admin", adminRoutes);
+// onboarding agreement
+app.use("/api/agreement", agreementRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

@@ -35,6 +35,7 @@ model User {
   // onboarding
   onboardingCompleted Boolean             @default(false) @map("onboarding_completed")
   onboardingProgress  OnboardingProgress?
+  LandlordAgreement   LandlordAgreement?
 
   @@map("users")
   @@schema("urbankey")
@@ -77,6 +78,22 @@ model OnboardingProgress {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("onboarding_progress")
+  @@schema("urbankey")
+}
+
+// onboarding agreement
+model LandlordAgreement {
+  id           String   @id @default(cuid())
+  userId       String   @unique @map("user_id")
+  acceptedAt   DateTime @map("accepted_at")
+  termsVersion String   @map("terms_version")
+  ipAddress    String?  @map("ip_address")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("landlord_agreements")
   @@schema("urbankey")
 }
 

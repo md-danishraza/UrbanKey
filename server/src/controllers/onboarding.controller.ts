@@ -55,6 +55,8 @@ export const getOnboardingProgress = async (
       where: { userId },
     });
 
+    console.log(progress);
+
     // Always return a consistent response structure
     res.json({
       success: true,
@@ -69,22 +71,19 @@ export const getOnboardingProgress = async (
 export const completeOnboarding = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.auth?.userId;
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     const { role } = req.body;
 
-    // Update user role
+    // 1. Update user role (Removed the invalid field)
     await prisma.user.update({
       where: { id: userId },
       data: {
         role: role.toUpperCase(),
-        onboardingCompleted: true,
       },
     });
 
-    // Mark onboarding as completed
+    // 2. Mark onboarding as completed in the correct table
     await prisma.onboardingProgress.update({
       where: { userId },
       data: {
