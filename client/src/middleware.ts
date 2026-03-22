@@ -1,6 +1,8 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+const ADMIN_USER_IDS = process.env.ADMIN_USER_IDS?.split(",") || [];
+
 // 1. Define public routes (no authentication required)
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -31,6 +33,8 @@ const isOnboardingRoute = createRouteMatcher(["/onboarding(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims, redirectToSignIn } = await auth();
+
+  // console.log(sessionClaims);
 
   // 1. Redirect authenticated users away from auth pages
   if (userId && isAuthRoute(req)) {
@@ -79,9 +83,16 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.redirect(new URL("/", req.url));
     }
 
-    // ❌ REMOVED: The onboarding completion check that was blocking all routes
-    // Users can now access public routes and their role-specific routes
-    // regardless of onboarding completion status
+    // check admin routes for only added admins
+    if (isAdminRoute(req)) {
+      const userId = sessionClaims?.sub;
+
+      const isAdmin = ADMIN_USER_IDS.includes(userId);
+
+      if (!isAdmin) {
+        return NextResponse.redirect(new URL("/unauthorized", req.url));
+      }
+    }
   }
 
   // Allow access to all other routes

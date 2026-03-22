@@ -40,11 +40,11 @@ export default function MainNavbar() {
         label: "Tenant",
         bgColor: "#0D0716", textColor: "#fff",
         links: [
+          { label: "Dashboard", href: "/tenant/dashboard" },
           { label: "Search Properties", href: "/properties/search" },
           { label: "Wishlist", href: "/tenant/wishlists" },
           { label: "My Visits", href: "/tenant/visits" },
           { label: "Enquiries", href: "/tenant/enquiries" },
-          { label: "Analytics", href: "/tenant/analytics" }
         ]
       });
     }
@@ -69,9 +69,9 @@ export default function MainNavbar() {
         label: "Admin Panel", 
         bgColor: "#1A0B2E", textColor: "#fff",
         links: [
-          { label: "Dashboard", href: "/admin/dashboard" },
+          { label: "Dashboard", href: "/admin" },
           { label: "Verifications", href: "/admin/verifications" },
-          { icon: Building2, label: 'Analytics', href: '/admin/analytics' },
+          { icon: Building2, label: 'Analytics', href: '/admin/ai-analytics' },
         ]
       });
     }
@@ -99,6 +99,7 @@ export default function MainNavbar() {
     >
       <UserButton.MenuItems>
         {/* Tenant Links */}
+        {userRole === 'tenant' && <UserButton.Link label="Wishlist" href="/tenant/dashboard" labelIcon={<Building2 className="w-4 h-4" />} />}
         {userRole === 'tenant' && <UserButton.Link label="Wishlist" href="/tenant/wishlists" labelIcon={<Heart className="w-4 h-4" />} />}
         {userRole === 'tenant' && <UserButton.Link label="My Visits" href="/tenant/visits" labelIcon={<Calendar className="w-4 h-4" />} />}
         {userRole === 'tenant' && <UserButton.Link label="Enquiries" href="/tenant/enquiries" labelIcon={<MessageCircle className="w-4 h-4" />} />}
@@ -112,7 +113,7 @@ export default function MainNavbar() {
         {userRole === 'landlord' && <UserButton.Link label="Onboarding" href="/onboarding/landlord" labelIcon={<User className="w-4 h-4" />} />}
         
         {/* Admin Links */}
-        {userRole === 'admin' && <UserButton.Link label="Verifications" href="/admin/verifications" labelIcon={<Shield className="w-4 h-4" />} />}
+        {userRole === 'admin' && <UserButton.Link label="dashboard" href="/admin" labelIcon={<Shield className="w-4 h-4" />} />}
       </UserButton.MenuItems>
     </UserButton>
   );

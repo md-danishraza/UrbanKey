@@ -41,19 +41,20 @@ model User {
 }
 
 model UserDocument {
-  id           String         @id @default(cuid())
-  userId       String         @map("user_id")
-  documentType String         @map("document_type") // 'aadhar', 'pan', 'property', etc.
-  fileUrl      String         @map("file_url")
-  fileName     String         @map("file_name")
-  fileSize     Int            @map("file_size")
-  mimeType     String         @map("mime_type")
-  status       DocumentStatus @default(PENDING)
-  uploadedAt   DateTime       @default(now()) @map("uploaded_at")
-  verifiedAt   DateTime?      @map("verified_at")
-  verifiedBy   String?        @map("verified_by")
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
+  id              String         @id @default(cuid())
+  userId          String         @map("user_id")
+  documentType    String         @map("document_type") // 'aadhar', 'pan', 'property', etc.
+  fileUrl         String         @map("file_url")
+  fileName        String         @map("file_name")
+  fileSize        Int            @map("file_size")
+  mimeType        String         @map("mime_type")
+  status          DocumentStatus @default(PENDING)
+  rejectionReason String?        @map("rejection_reason")
+  uploadedAt      DateTime       @default(now()) @map("uploaded_at")
+  verifiedAt      DateTime?      @map("verified_at")
+  verifiedBy      String?        @map("verified_by")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
