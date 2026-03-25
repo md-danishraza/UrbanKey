@@ -3,6 +3,11 @@ import type { AuthRequest } from "../middleware/auth.middleware.js";
 import prisma from "../config/database.js";
 import { BHKType, FurnishingType, TenantType } from "@prisma/client";
 
+import {
+  upsertPropertyEmbedding,
+  semanticSearch,
+} from "../services/embedding.service.js";
+
 // Helper function to validate and extract property ID from params
 const validatePropertyId = (
   propertyId: string | string[] | undefined
@@ -246,6 +251,9 @@ export const createProperty = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    // ✅ Generate and store embedding for the property
+    await upsertPropertyEmbedding(property.id);
+
     // Track creation for analytics
     await prisma.analyticsEvent.create({
       data: {
@@ -307,9 +315,113 @@ export const updateProperty = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    // ✅ Regenerate embedding after update
+    await upsertPropertyEmbedding(property.id);
+
     res.json(property);
   } catch (error) {
     console.error("Error updating property:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ✅ Add semantic search endpoint
+export const semanticSearchProperties = async (req: Request, res: Response) => {
+  try {
+    const { q, limit = 10 } = req.query;
+
+    if (!q || typeof q !== "string") {
+      return res.status(400).json({ error: "Search query required" });
+    }
+
+    const results = await semanticSearch(q, Number(limit));
+
+    res.json({
+      success: true,
+      query: q,
+      results,
+      count: results.length,
+    });
+  } catch (error) {
+    console.error("Error in semantic search:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ✅ Add property analytics endpoint
+export const getPropertyAnalytics = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    let propertyId: string;
+    try {
+      propertyId = validatePropertyId(req.params.id);
+    } catch (error) {
+      return res.status(400).json({ error: "Invalid property ID format" });
+    }
+
+    // Verify property ownership
+    const property = await prisma.property.findUnique({
+      where: { id: propertyId },
+    });
+
+    if (!property) {
+      return res.status(404).json({ error: "Property not found" });
+    }
+
+    if (property.landlordId !== userId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    // Get analytics data
+    const [views, leads, visits] = await Promise.all([
+      prisma.analyticsEvent.count({
+        where: {
+          propertyId,
+          eventType: "property_view",
+        },
+      }),
+      prisma.lead.count({
+        where: { propertyId },
+      }),
+      prisma.visitSchedule.count({
+        where: { propertyId },
+      }),
+    ]);
+
+    // Get daily views for last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const dailyViews = await prisma.analyticsEvent.groupBy({
+      by: ["createdAt"],
+      where: {
+        propertyId,
+        eventType: "property_view",
+        createdAt: {
+          gte: sevenDaysAgo,
+        },
+      },
+      _count: true,
+    });
+
+    res.json({
+      success: true,
+      analytics: {
+        totalViews: views,
+        totalLeads: leads,
+        totalVisits: visits,
+        dailyViews: dailyViews.map((d) => ({
+          date: d.createdAt,
+          count: d._count,
+        })),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching property analytics:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

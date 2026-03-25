@@ -8,6 +8,8 @@ import {
   deleteProperty,
   togglePropertyAvailability,
   searchProperties,
+  semanticSearchProperties,
+  getPropertyAnalytics,
 } from "../controllers/property.controller.js";
 
 const router = Router();
@@ -15,6 +17,7 @@ const router = Router();
 // Public routes
 router.get("/", getAllProperties);
 router.get("/search", searchProperties);
+router.get("/semantic", semanticSearchProperties);
 router.get("/:id", getPropertyById);
 
 // Protected routes
@@ -22,5 +25,6 @@ router.post("/", requireAuth, createProperty);
 router.put("/:id", requireAuth, updateProperty);
 router.delete("/:id", requireAuth, deleteProperty);
 router.patch("/:id/toggle", requireAuth, togglePropertyAvailability);
+router.get("/:id/analytics", requireAuth, getPropertyAnalytics);
 
 export default router;
