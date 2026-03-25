@@ -12,6 +12,7 @@ import testRoutes from "./routes/test.routes.js";
 import documentRoutes from "./routes/document.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import agreementRoutes from "./routes/agreement.routes.js";
+import imageRoutes from "./routes/image.routes.js";
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.use("/api/documents", documentRoutes);
 app.use("/api/admin", adminRoutes);
 // onboarding agreement
 app.use("/api/agreement", agreementRoutes);
+app.use("/api/images", imageRoutes);
 
 // Health check
 app.get("/health", (req, res) => {
