@@ -1,24 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { motion } from 'framer-motion';
 import { 
   MapPin, 
-  Upload, 
-  X, 
-  Image as ImageIcon,
+  
   Loader2,
-  Check,
-  AlertCircle,
   Train,
   Droplet,
   Zap,
   Flame,
-  Car,
-  Users,
+  
   Home,
-  Briefcase
+  Briefcase,
+  CheckCircle
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -26,13 +21,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 
-// Types
+import { ImageUpload } from './ImageUpload';
+
+// Property Form Data - Matches Prisma Schema
 interface PropertyFormData {
   title: string;
   description: string;
@@ -54,8 +48,6 @@ interface PropertyFormData {
   distanceToMetroKm?: number;
   isBroker: boolean;
   brokerageFee?: number;
-  parkingAvailable: boolean;
-  petFriendly: boolean;
 }
 
 interface PropertyFormProps {
@@ -105,8 +97,6 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
     distanceToMetroKm: initialData.distanceToMetroKm,
     isBroker: initialData.isBroker || false,
     brokerageFee: initialData.brokerageFee,
-    parkingAvailable: initialData.parkingAvailable || false,
-    petFriendly: initialData.petFriendly || false,
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -114,33 +104,11 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
-  // Image upload handling
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    setImages(prev => [...prev, ...acceptedFiles]);
-    
-    // Create preview URLs
-    acceptedFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreviews(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-  }, []);
+  
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
-    },
-    maxSize: 5 * 1024 * 1024, // 5MB
-    maxFiles: 10,
-  });
 
-  const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
-  };
+
+
 
   // Calculate distance to nearest metro station
   const calculateMetroDistance = async () => {
@@ -153,14 +121,7 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
     setLocationError(null);
 
     try {
-      // Geocode address to coordinates
-      const fullAddress = `${formData.addressLine1}, ${formData.addressLine2}, ${formData.city}, ${formData.state}`;
-      
-      // Using Mapbox Geocoding API (you'll need to implement this with your API key)
-      // For now, we'll simulate metro distance
-      // In production, call your backend endpoint
-      
-      // Simulate API call
+      // TODO: Replace with actual Mapbox API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Mock response
@@ -182,14 +143,30 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit(formData, images);
+    
+    const submitData: PropertyFormData = {
+      ...formData,
+      rent: Number(formData.rent),
+      brokerageFee: formData.brokerageFee ? Number(formData.brokerageFee) : undefined,
+    };
+    
+    await onSubmit(submitData, images);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.id]: e.target.value
-    }));
+    const { id, value } = e.target;
+    
+    if (id === 'rent' || id === 'brokerageFee') {
+      setFormData(prev => ({
+        ...prev,
+        [id]: value === '' ? 0 : Number(value)
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [id]: value
+      }));
+    }
   };
 
   return (
@@ -197,7 +174,10 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
       {/* Basic Information */}
       <Card>
         <CardContent className="p-6 space-y-4">
-          <h2 className="text-xl font-semibold">Basic Information</h2>
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <Home className="h-5 w-5" />
+            Basic Information
+          </h2>
           
           <div className="space-y-2">
             <Label htmlFor="title">Property Title *</Label>
@@ -262,6 +242,8 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
                 onChange={handleChange}
                 placeholder="25000"
                 required
+                min="0"
+                step="1000"
               />
             </div>
 
@@ -422,30 +404,13 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
                 IGL Gas Pipeline
               </Label>
             </div>
+          </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="parkingAvailable"
-                checked={formData.parkingAvailable}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, parkingAvailable: checked as boolean }))}
-              />
-              <Label htmlFor="parkingAvailable" className="flex items-center gap-2 cursor-pointer">
-                <Car className="h-4 w-4 text-gray-500" />
-                Parking Available
-              </Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="petFriendly"
-                checked={formData.petFriendly}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, petFriendly: checked as boolean }))}
-              />
-              <Label htmlFor="petFriendly" className="flex items-center gap-2 cursor-pointer">
-                <Users className="h-4 w-4 text-purple-500" />
-                Pet Friendly
-              </Label>
-            </div>
+          <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">
+            <p className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              These amenities help your property appear in relevant searches
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -453,7 +418,10 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
       {/* Broker Information */}
       <Card>
         <CardContent className="p-6 space-y-4">
-          <h2 className="text-xl font-semibold">Broker Information</h2>
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <Briefcase className="h-5 w-5" />
+            Broker Information
+          </h2>
           
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -475,8 +443,12 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
                 value={formData.brokerageFee || ''}
                 onChange={handleChange}
                 placeholder="e.g., 25000"
+                min="0"
+                step="1000"
               />
-              <p className="text-xs text-gray-500">Typically 15 days or 1 month rent</p>
+              <p className="text-xs text-gray-500">
+                Typically 15 days or 1 month rent. This will be shown to tenants.
+              </p>
             </div>
           )}
         </CardContent>
@@ -485,45 +457,27 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
       {/* Image Upload */}
       <Card>
         <CardContent className="p-6 space-y-4">
-          <h2 className="text-xl font-semibold">Property Images</h2>
-          
-          <div
-            {...getRootProps()}
-            className={cn(
-              "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
-              isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
-            )}
-          >
-            <input {...getInputProps()} />
-            <Upload className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600">
-              {isDragActive ? "Drop images here" : "Drag & drop images here, or click to select"}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              Up to 10 images, max 5MB each (JPG, PNG, GIF, WebP)
-            </p>
-          </div>
-
-          {imagePreviews.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-              {imagePreviews.map((preview, index) => (
-                <div key={index} className="relative group">
-                  <img
-                    src={preview}
-                    alt={`Preview ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+            <h2 className="text-xl font-semibold">Property Images</h2>
+            
+            <ImageUpload
+            images={images.map((file, index) => ({
+                id: `temp-${Date.now()}-${index}`,
+                file,
+                url: imagePreviews[index],
+                isPrimary: index === 0 && images.length === 1,
+                sortOrder: index,
+            }))}
+            onImagesChange={(newImages) => {
+                // Extract files and previews from newImages
+                const newFiles = newImages.filter(img => img.file).map(img => img.file!);
+                const newPreviews = newImages.filter(img => img.url).map(img => img.url);
+                setImages(newFiles);
+                setImagePreviews(newPreviews);
+            }}
+            maxImages={10}
+            isLoading={isLoading}
+            isEditMode={false}
+            />
         </CardContent>
       </Card>
 

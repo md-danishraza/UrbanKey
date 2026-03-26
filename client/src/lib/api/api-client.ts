@@ -47,7 +47,7 @@ class ApiClient {
   }
   async patch<T>(path: string, data: any, token?: string | null): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
-      method: "PATCH  ",
+      method: "PATCH",
       headers: this.getHeaders(token),
       body: JSON.stringify(data),
     });

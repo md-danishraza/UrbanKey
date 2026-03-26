@@ -9,6 +9,7 @@ import Link from 'next/link';
 
 import { PropertyForm } from '@/components/properties/PropertyForm';
 import { apiClient } from '@/lib/api/api-client';
+import { ImageManager } from '@/components/properties/ImageManager';
 
 export default function EditPropertyPage() {
   const router = useRouter();
@@ -91,6 +92,10 @@ export default function EditPropertyPage() {
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h1 className="text-2xl font-bold mb-6">Edit Property</h1>
           <PropertyForm initialData={property} onSubmit={handleSubmit} />
+          <div className="mt-8">
+            <h2 className="text-xl font-bold mb-4">Manage Images</h2>
+            <ImageManager propertyId={propertyId} />
+          </div>
         </div>
       </div>
     </div>
