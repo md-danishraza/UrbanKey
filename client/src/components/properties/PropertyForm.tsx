@@ -25,6 +25,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 
 import { ImageUpload } from './ImageUpload';
+import { MetroDistanceCalculator } from './MetroDistanceCalculator';
+import { LocationPicker } from './LocationPicker';
 
 // Property Form Data - Matches Prisma Schema
 interface PropertyFormData {
@@ -104,42 +106,26 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
-  
-
-
-
-
-
-  // Calculate distance to nearest metro station
-  const calculateMetroDistance = async () => {
-    if (!formData.addressLine1 || !formData.city) {
-      setLocationError('Please enter address and city first');
-      return;
-    }
-
-    setIsCalculatingDistance(true);
-    setLocationError(null);
-
-    try {
-      // TODO: Replace with actual Mapbox API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock response
-      const mockMetroStation = 'Indiranagar';
-      const mockDistance = (Math.random() * 3).toFixed(1);
-      
-      setFormData(prev => ({
-        ...prev,
-        nearestMetroStation: mockMetroStation,
-        distanceToMetroKm: parseFloat(mockDistance),
-      }));
-      
-    } catch (error) {
-      setLocationError('Failed to calculate metro distance');
-    } finally {
-      setIsCalculatingDistance(false);
-    }
+  // geo coordinate states
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  // Add handler for metro distance
+  const handleMetroDistanceCalculated = (
+    stationName: string,
+    distanceKm: number,
+    latitude: number,
+    longitude: number
+  ) => {
+    setFormData(prev => ({
+      ...prev,
+      nearestMetroStation: stationName,
+      distanceToMetroKm: distanceKm,
+      latitude,
+      longitude,
+    }));
+    setCoordinates({ lat: latitude, lng: longitude });
   };
+
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -178,7 +164,7 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
           <p className="text-sm text-blue-600">Saving your property...</p>
         </div>
       )}
-      
+
       {/* Basic Information */}
       <Card>
         <CardContent className="p-6 space-y-4">
@@ -336,38 +322,52 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
 
           {/* Metro Distance */}
           <div className="border-t pt-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <Label className="flex items-center gap-2">
-                  <Train className="h-4 w-4" />
-                  Nearest Metro Station
-                </Label>
-                {formData.nearestMetroStation ? (
-                  <div className="text-sm text-green-600">
-                    {formData.nearestMetroStation} - {formData.distanceToMetroKm} km away
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">Not calculated yet</p>
-                )}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={calculateMetroDistance}
-                disabled={isCalculatingDistance}
-              >
-                {isCalculatingDistance ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  'Calculate Distance'
-                )}
-              </Button>
-            </div>
-            {locationError && (
-              <p className="text-sm text-red-500 mt-2">{locationError}</p>
-            )}
+            <MetroDistanceCalculator
+              address={`${formData.addressLine1} ${formData.addressLine2}`}
+              city={formData.city}
+              onDistanceCalculated={handleMetroDistanceCalculated}
+              existingStation={formData.nearestMetroStation}
+              existingDistance={formData.distanceToMetroKm}
+            />
           </div>
+
+          {/* Manual Location Picker - Optional */}
+          <details className="mt-4">
+            <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
+              Enter coordinates manually
+            </summary>
+            <div className="mt-3">
+              <LocationPicker
+                onLocationSelected={(lat, lng, address) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    latitude: lat,
+                    longitude: lng,
+                  }));
+                  setCoordinates({ lat, lng });
+                  
+                  // Optionally update address from reverse geocoding
+                  if (address && !formData.addressLine1) {
+                    // You might want to parse the address
+                    setFormData(prev => ({
+                      ...prev,
+                      addressLine1: address.split(',')[0] || '',
+                      city: address.split(',').slice(-3, -2)[0]?.trim() || prev.city,
+                    }));
+                  }
+                }}
+                initialLat={formData.latitude}
+                initialLng={formData.longitude}
+              />
+            </div>
+          </details>
+
+          {/* Optional: Show coordinates if available */}
+          {coordinates && (
+            <div className="text-xs text-gray-500 mt-2">
+              Coordinates: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+            </div>
+          )}
         </CardContent>
       </Card>
 
