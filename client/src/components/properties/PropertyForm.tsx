@@ -171,6 +171,14 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+       {/* Add a loading overlay indicator at the top */}
+       {isLoading && (
+        <div className="sticky top-0 z-10 -mt-6 -mx-6 mb-6 px-6 py-3 bg-blue-50 border-b border-blue-200 flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+          <p className="text-sm text-blue-600">Saving your property...</p>
+        </div>
+      )}
+      
       {/* Basic Information */}
       <Card>
         <CardContent className="p-6 space-y-4">
@@ -482,21 +490,31 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
       </Card>
 
       {/* Submit Button */}
-      <div className="flex justify-end gap-3">
-        <Button type="button" variant="outline" onClick={() => window.history.back()}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            'Save Property'
-          )}
-        </Button>
-      </div>
+      
+        <div className="flex justify-end gap-3 pt-4 border-t">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => window.history.back()}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={isLoading}
+            className="min-w-[120px]"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save Property'
+            )}
+          </Button>
+        </div>
     </form>
   );
 }

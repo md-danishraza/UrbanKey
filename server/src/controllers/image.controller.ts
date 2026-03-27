@@ -282,10 +282,10 @@ export const deleteAllPropertyImagesController = async (
     // Delete all images from Supabase storage
     await deletePropertyImages(propertyId, userId);
 
-    // Delete all image records from the database
-    await prisma.propertyImage.deleteMany({
-      where: { propertyId },
-    });
+    // // Delete all image records from the database
+    // await prisma.propertyImage.deleteMany({
+    //   where: { propertyId },
+    // });
 
     res.json({
       success: true,
