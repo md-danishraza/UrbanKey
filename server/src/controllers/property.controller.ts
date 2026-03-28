@@ -392,21 +392,32 @@ export const getPropertyAnalytics = async (req: AuthRequest, res: Response) => {
       }),
     ]);
 
-    // Get daily views for last 7 days
+    // Get daily views for last 7 days - GROUP BY DATE only
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    const dailyViews = await prisma.analyticsEvent.groupBy({
-      by: ["createdAt"],
-      where: {
-        propertyId,
-        eventType: "property_view",
-        createdAt: {
-          gte: sevenDaysAgo,
-        },
-      },
-      _count: true,
-    });
+    // Using raw SQL to group by date
+    const dailyViews = await prisma.$queryRaw<
+      Array<{ date: Date; count: bigint }>
+    >`
+      SELECT 
+        DATE("created_at") as date,
+        COUNT(*) as count
+      FROM "urbankey"."analytics_events"
+      WHERE 
+        "property_id" = ${propertyId}
+        AND "event_type" = 'property_view'
+        AND "created_at" >= ${sevenDaysAgo}
+      GROUP BY DATE("created_at")
+      ORDER BY DATE("created_at") DESC
+    `;
+
+    // Format the response
+    const formattedDailyViews = dailyViews.map((d) => ({
+      date: d.date.toISOString(),
+      count: Number(d.count),
+    }));
 
     res.json({
       success: true,
@@ -414,10 +425,7 @@ export const getPropertyAnalytics = async (req: AuthRequest, res: Response) => {
         totalViews: views,
         totalLeads: leads,
         totalVisits: visits,
-        dailyViews: dailyViews.map((d) => ({
-          date: d.createdAt,
-          count: d._count,
-        })),
+        dailyViews: formattedDailyViews,
       },
     });
   } catch (error) {

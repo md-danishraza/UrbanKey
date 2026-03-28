@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
 import { 
   MapPin, 
   
   Loader2,
-  Train,
   Droplet,
   Zap,
   Flame,
@@ -25,8 +23,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 
 import { ImageUpload } from './ImageUpload';
+
+import { MapPicker } from './MapPicker';
 import { MetroDistanceCalculator } from './MetroDistanceCalculator';
-import { LocationPicker } from './LocationPicker';
 
 // Property Form Data - Matches Prisma Schema
 interface PropertyFormData {
@@ -103,32 +102,41 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
 
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
+ 
 
   // geo coordinate states
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
-  // Add handler for metro distance
-  const handleMetroDistanceCalculated = (
-    stationName: string,
-    distanceKm: number,
-    latitude: number,
-    longitude: number
-  ) => {
-    setFormData(prev => ({
-      ...prev,
-      nearestMetroStation: stationName,
-      distanceToMetroKm: distanceKm,
-      latitude,
-      longitude,
-    }));
-    setCoordinates({ lat: latitude, lng: longitude });
-  };
+    // Update the handleMetroDistanceCalculated function
+    const handleLocationSelected = (data: {
+      lat: number;
+      lng: number;
+      address: string;
+      addressLine1?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+      nearestMetroStation?: string;
+      distanceToMetroKm?: number;
+    }) => {
+      // console.log(formData.addressLine1.split("،"))
+      setFormData(prev => ({
+        ...prev,
+        addressLine1: data.addressLine1 || data.address.split('،')[0]?.trim() || prev.addressLine1, // 
+        city: data.city || prev.city,
+        state: data.state || prev.state,
+        pincode: data.pincode || prev.pincode,
+        latitude: data.lat,
+        longitude: data.lng,
+        nearestMetroStation: data.nearestMetroStation || prev.nearestMetroStation,
+        distanceToMetroKm: data.distanceToMetroKm || prev.distanceToMetroKm,
+      }));
+      
+      setCoordinates({ lat: data.lat, lng: data.lng });
+    };
 
-  
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
     
     const submitData: PropertyFormData = {
       ...formData,
@@ -138,6 +146,7 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
     
     await onSubmit(submitData, images);
   };
+ 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -154,6 +163,7 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
       }));
     }
   };
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -259,6 +269,7 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
       </Card>
 
       {/* Location */}
+     
       <Card>
         <CardContent className="p-6 space-y-4">
           <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -266,105 +277,107 @@ export function PropertyForm({ initialData = {}, onSubmit, isLoading = false }: 
             Location
           </h2>
 
-          <div className="space-y-2">
-            <Label htmlFor="addressLine1">Address Line 1 *</Label>
-            <Input
-              id="addressLine1"
-              value={formData.addressLine1}
-              onChange={handleChange}
-              placeholder="House/Flat No., Building Name"
-              required
-            />
+          {/* Interactive Map Picker */}
+          <MapPicker
+            onLocationSelected={handleLocationSelected}
+            initialLat={formData.latitude}
+            initialLng={formData.longitude}
+            initialAddress={`${formData.addressLine1} ${formData.addressLine2}`}
+            initialCity={formData.city}
+            initialState={formData.state}
+            initialPincode={formData.pincode}
+            showMetroInfo={true}
+          />
+
+          {/* Manual Address Fields (Fallback) */}
+          <div className="border-t pt-4 mt-4">
+            <details className="text-sm">
+              <summary className="text-gray-500 cursor-pointer hover:text-gray-700">
+                Or enter address manually
+              </summary>
+              <div className="mt-3 space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="addressLine1">Address Line 1 *</Label>
+                  <Input
+                    id="addressLine1"
+                    value={formData.addressLine1}
+                    onChange={handleChange}
+                    placeholder="House/Flat No., Building Name"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="addressLine2">Address Line 2 (Optional)</Label>
+                  <Input
+                    id="addressLine2"
+                    value={formData.addressLine2}
+                    onChange={handleChange}
+                    placeholder="Street, Area"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City *</Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={handleChange}
+                      placeholder="Bangalore"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State *</Label>
+                    <Input
+                      id="state"
+                      value={formData.state}
+                      onChange={handleChange}
+                      placeholder="Karnataka"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pincode">Pincode *</Label>
+                    <Input
+                      id="pincode"
+                      value={formData.pincode}
+                      onChange={handleChange}
+                      placeholder="560001"
+                    />
+                  </div>
+                </div>
+              </div>
+            </details>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="addressLine2">Address Line 2 (Optional)</Label>
-            <Input
-              id="addressLine2"
-              value={formData.addressLine2}
-              onChange={handleChange}
-              placeholder="Street, Area"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="city">City *</Label>
-              <Input
-                id="city"
-                value={formData.city}
-                onChange={handleChange}
-                placeholder="Bangalore"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="state">State *</Label>
-              <Input
-                id="state"
-                value={formData.state}
-                onChange={handleChange}
-                placeholder="Karnataka"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="pincode">Pincode *</Label>
-              <Input
-                id="pincode"
-                value={formData.pincode}
-                onChange={handleChange}
-                placeholder="560001"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Metro Distance */}
-          <div className="border-t pt-4">
-            <MetroDistanceCalculator
-              address={`${formData.addressLine1} ${formData.addressLine2}`}
-              city={formData.city}
-              onDistanceCalculated={handleMetroDistanceCalculated}
-              existingStation={formData.nearestMetroStation}
-              existingDistance={formData.distanceToMetroKm}
-            />
-          </div>
-
-          {/* Manual Location Picker - Optional */}
-          <details className="mt-4">
-            <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
-              Enter coordinates manually
-            </summary>
-            <div className="mt-3">
-              <LocationPicker
-                onLocationSelected={(lat, lng, address) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    latitude: lat,
-                    longitude: lng,
-                  }));
-                  setCoordinates({ lat, lng });
-                  
-                  // Optionally update address from reverse geocoding
-                  if (address && !formData.addressLine1) {
-                    // You might want to parse the address
+          {/* Metro Distance Calculator (Fallback if map picker doesn't find metro) */}
+          <div className="border-t pt-4 mt-2">
+            <details className="text-sm">
+              <summary className="text-gray-500 cursor-pointer hover:text-gray-700">
+                Metro station not found? Enter manually
+              </summary>
+              <div className="mt-3">
+                <MetroDistanceCalculator
+                  address={`${formData.addressLine1} ${formData.addressLine2}`}
+                  city={formData.city}
+                  onDistanceCalculated={(stationName, distanceKm, lat, lng) => {
                     setFormData(prev => ({
                       ...prev,
-                      addressLine1: address.split(',')[0] || '',
-                      city: address.split(',').slice(-3, -2)[0]?.trim() || prev.city,
+                      nearestMetroStation: stationName,
+                      distanceToMetroKm: distanceKm,
+                      latitude: lat || prev.latitude,
+                      longitude: lng || prev.longitude,
                     }));
-                  }
-                }}
-                initialLat={formData.latitude}
-                initialLng={formData.longitude}
-              />
-            </div>
-          </details>
+                  }}
+                  existingStation={formData.nearestMetroStation}
+                  existingDistance={formData.distanceToMetroKm}
+                />
+              </div>
+            </details>
+          </div>
 
-          {/* Optional: Show coordinates if available */}
+          {/* Display coordinates if set */}
           {coordinates && (
-            <div className="text-xs text-gray-500 mt-2">
+            <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
               Coordinates: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
             </div>
           )}
