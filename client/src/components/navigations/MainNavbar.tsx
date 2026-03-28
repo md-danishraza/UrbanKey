@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useUser, UserButton } from '@clerk/nextjs';
 import Link from 'next/link';
-import { Heart, Calendar, MessageCircle, Building2, Shield, FileText, User } from 'lucide-react';
+import { Heart, Calendar, MessageCircle, Building2, Shield, FileText, User, MapPin } from 'lucide-react';
 
 import PillNav from './PillNav';
 import CardNav from './CardNav';
@@ -42,7 +42,7 @@ export default function MainNavbar() {
         links: [
           { label: "Dashboard", href: "/tenant/dashboard" },
           { label: "Search Properties", href: "/properties/search" },
-          { label: "Wishlist", href: "/tenant/wishlists" },
+          { label: "Wishlist", href: "/tenant/wishlist" },
           { label: "My Visits", href: "/tenant/visits" },
           { label: "Enquiries", href: "/tenant/enquiries" },
         ]
@@ -58,6 +58,7 @@ export default function MainNavbar() {
           { label: "Dashboard", href: "/landlord/dashboard" },
           { label: "List Property", href: "/landlord/properties/new" },
           { label: "Leads", href: "/landlord/leads" },
+          { label: "Visits", href: "/landlord/visits" },
           { label: "Agreements", href: "/landlord/agreements" }
         ]
       });
@@ -99,8 +100,8 @@ export default function MainNavbar() {
     >
       <UserButton.MenuItems>
         {/* Tenant Links */}
-        {userRole === 'tenant' && <UserButton.Link label="Wishlist" href="/tenant/dashboard" labelIcon={<Building2 className="w-4 h-4" />} />}
-        {userRole === 'tenant' && <UserButton.Link label="Wishlist" href="/tenant/wishlists" labelIcon={<Heart className="w-4 h-4" />} />}
+        {userRole === 'tenant' && <UserButton.Link label="Dashboard" href="/tenant/dashboard" labelIcon={<Building2 className="w-4 h-4" />} />}
+        {userRole === 'tenant' && <UserButton.Link label="Wishlist" href="/tenant/wishlist" labelIcon={<Heart className="w-4 h-4" />} />}
         {userRole === 'tenant' && <UserButton.Link label="My Visits" href="/tenant/visits" labelIcon={<Calendar className="w-4 h-4" />} />}
         {userRole === 'tenant' && <UserButton.Link label="Enquiries" href="/tenant/enquiries" labelIcon={<MessageCircle className="w-4 h-4" />} />}
         {userRole === 'tenant' && <UserButton.Link label="Onboarding" href="/onboarding/tenant" labelIcon={<User className="w-4 h-4" />} />}
@@ -109,6 +110,7 @@ export default function MainNavbar() {
         {userRole === 'landlord' && <UserButton.Link label="Dashboard" href="/landlord/dashboard" labelIcon={<Building2 className="w-4 h-4" />} />}
         {userRole === 'landlord' && <UserButton.Link label="My Properties" href="/landlord/properties" labelIcon={<Building2 className="w-4 h-4" />} />}
         {userRole === 'landlord' && <UserButton.Link label="Leads" href="/landlord/leads" labelIcon={<MessageCircle className="w-4 h-4" />} />}
+        {userRole === 'landlord' && <UserButton.Link label="Visits" href="/landlord/visits" labelIcon={<MapPin className="w-4 h-4" />} />}
         {userRole === 'landlord' && <UserButton.Link label="Agreements" href="/landlord/agreements" labelIcon={<FileText className="w-4 h-4" />} />}
         {userRole === 'landlord' && <UserButton.Link label="Onboarding" href="/onboarding/landlord" labelIcon={<User className="w-4 h-4" />} />}
         

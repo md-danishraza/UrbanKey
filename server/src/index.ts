@@ -14,6 +14,9 @@ import adminRoutes from "./routes/admin.routes.js";
 import agreementRoutes from "./routes/agreement.routes.js";
 import imageRoutes from "./routes/image.routes.js";
 import landlordDashboardRoutes from "./routes/landlordDashboard.routes.js";
+import leadRoutes from "./routes/leads.routes.js";
+import visitRoutes from "./routes/visits.routes.js";
+import wishlistRoutes from "./routes/wishlist.routes.js";
 
 dotenv.config();
 
@@ -44,6 +47,10 @@ app.use("/api/images", imageRoutes);
 app.use("/api/landlord/dashboard", landlordDashboardRoutes);
 // implement later on
 // app.use('/api/tenant/dashboard', landlordDashboardRoutes);
+
+app.use("/api/leads", leadRoutes);
+app.use("/api/visits", visitRoutes);
+app.use("/api/wishlist", wishlistRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

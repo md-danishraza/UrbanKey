@@ -1,73 +1,59 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAppSelector, useAppDispatch } from "@/state";
-// import { useAuth } from "./useAuth";
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { toast } from "sonner";
+import {
+  checkWishlistStatus,
+  addToWishlist,
+  removeFromWishlist,
+} from "@/lib/api/wishlist";
 
-interface UseWishlistReturn {
-  isInWishlist: boolean;
-  toggleWishlist: () => Promise<void>;
-  wishlistCount: number;
-  loading: boolean;
-}
-
-export function useWishlist(propertyId: string): UseWishlistReturn {
+export function useWishlist(propertyId?: string) {
+  const { getToken } = useAuth();
   const [isInWishlist, setIsInWishlist] = useState(false);
-  const [loading, setLoading] = useState(false);
-  //   will set auth later
-  //   const { user } = useAuth();
-  const user = null;
+  const [isLoading, setIsLoading] = useState(false);
 
-  const dispatch = useAppDispatch();
+  const checkStatus = useCallback(async () => {
+    if (!propertyId) return;
 
-  // You can connect this to your Redux store later
-  // For now, we'll use local state with localStorage for demo
-
-  useEffect(() => {
-    if (!user) return;
-
-    // Load wishlist from localStorage (replace with API call later)
-    const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
-    setIsInWishlist(wishlist.includes(propertyId));
-  }, [propertyId, user]);
-
-  const toggleWishlist = async () => {
-    if (!user) {
-      toast.error("Please login to save properties");
-      return;
-    }
-
-    setLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const token = await getToken();
+      if (!token) throw new Error("not authorized");
+      const response: any = await checkWishlistStatus(token, propertyId);
+      setIsInWishlist(response.isInWishlist);
+    } catch (error) {
+      console.error("Failed to check wishlist status:", error);
+    }
+  }, [propertyId, getToken]);
 
-      // Update localStorage (replace with actual API call)
-      const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
+  const toggleWishlist = useCallback(async () => {
+    if (!propertyId) return;
 
+    setIsLoading(true);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("not authorized");
       if (isInWishlist) {
-        const newWishlist = wishlist.filter((id: string) => id !== propertyId);
-        localStorage.setItem("wishlist", JSON.stringify(newWishlist));
+        await removeFromWishlist(token, propertyId);
         setIsInWishlist(false);
         toast.success("Removed from wishlist");
       } else {
-        wishlist.push(propertyId);
-        localStorage.setItem("wishlist", JSON.stringify(wishlist));
+        await addToWishlist(token, propertyId);
         setIsInWishlist(true);
         toast.success("Added to wishlist");
       }
     } catch (error) {
+      console.error("Failed to toggle wishlist:", error);
       toast.error("Something went wrong");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  };
+  }, [propertyId, isInWishlist, getToken]);
 
-  return {
-    isInWishlist,
-    toggleWishlist,
-    wishlistCount: 0, // Will be implemented with actual data
-    loading,
-  };
+  useEffect(() => {
+    checkStatus();
+  }, [checkStatus]);
+
+  return { isInWishlist, isLoading, toggleWishlist, checkStatus };
 }
