@@ -11,6 +11,7 @@ import {
   getUserVisits,
   getUserLeads,
   syncUser,
+  getLandlordProperties,
 } from "../controllers/user.controller.js";
 
 const router = Router();
@@ -30,5 +31,6 @@ router.get("/:userId/properties", getUserProperties);
 router.get("/:userId/wishlist", getUserWishlist);
 router.get("/:userId/visits", getUserVisits);
 router.get("/:userId/leads", getUserLeads);
+router.get("/landlord/me", requireAuth, getLandlordProperties);
 
 export default router;

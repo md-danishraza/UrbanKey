@@ -13,6 +13,7 @@ import documentRoutes from "./routes/document.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import agreementRoutes from "./routes/agreement.routes.js";
 import imageRoutes from "./routes/image.routes.js";
+import landlordDashboardRoutes from "./routes/landlordDashboard.routes.js";
 
 dotenv.config();
 
@@ -39,6 +40,10 @@ app.use("/api/admin", adminRoutes);
 // onboarding agreement
 app.use("/api/agreement", agreementRoutes);
 app.use("/api/images", imageRoutes);
+// dashboards
+app.use("/api/landlord/dashboard", landlordDashboardRoutes);
+// implement later on
+// app.use('/api/tenant/dashboard', landlordDashboardRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

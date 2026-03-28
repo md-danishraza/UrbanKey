@@ -86,14 +86,14 @@ export function PropertyActions({
   return (
     <Card className={className}>
       <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
+        <div className="flex items-centerf flex-wrap gap-2 justify-between mb-4">
+          <div className="flex items-center  gap-2">
             <Badge className={cn(isActive ? 'bg-green-500' : 'bg-gray-500')}>
               {isActive ? 'Active' : 'Inactive'}
             </Badge>
             {isLoading && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Link href={`/landlord/properties/${propertyId}/edit`}>
               <Button variant="outline" size="sm" className="gap-1">
                 <Edit className="h-4 w-4" />

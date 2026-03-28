@@ -214,6 +214,58 @@ export const getUserProperties = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const getLandlordProperties = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const properties = await prisma.property.findMany({
+      where: { landlordId: userId },
+      include: {
+        images: {
+          orderBy: { sortOrder: "asc" },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Get view counts for each property
+    const propertiesWithViews = await Promise.all(
+      properties.map(async (property) => {
+        const views = await prisma.analyticsEvent.count({
+          where: {
+            propertyId: property.id,
+            eventType: "property_view",
+          },
+        });
+
+        const leads = await prisma.lead.count({
+          where: { propertyId: property.id },
+        });
+
+        return {
+          ...property,
+          views,
+          leads,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data: propertiesWithViews,
+    });
+  } catch (error) {
+    console.error("Error fetching landlord properties:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 export const getUserWishlist = async (req: AuthRequest, res: Response) => {
   try {
     const requestingUserId = req.auth?.userId;
