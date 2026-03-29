@@ -53,7 +53,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
     });
 
     // Get total agreements
-    const totalAgreements = await prisma.rentAgreement.count({
+    const totalAgreements = await prisma.rentalAgreement.count({
       where: {
         landlordId: userId,
       },

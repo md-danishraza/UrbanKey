@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MessageCircle, Phone, Mail, Eye, Calendar, Clock, Loader2 } from 'lucide-react';
+import { MessageCircle, Phone, Mail, Eye,  Clock, } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

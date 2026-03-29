@@ -85,6 +85,7 @@ export const getLandlordLeads = async (req: AuthRequest, res: Response) => {
               where: { isPrimary: true },
               take: 1,
             },
+            rent: true,
           },
         },
         tenant: {

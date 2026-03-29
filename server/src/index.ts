@@ -11,12 +11,14 @@ import { errorHandler } from "./middleware/error.middleware.js";
 import testRoutes from "./routes/test.routes.js";
 import documentRoutes from "./routes/document.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
-import agreementRoutes from "./routes/agreement.routes.js";
+import onBoardingAgreementRoutes from "./routes/onBoardingAgreement.routes.js";
 import imageRoutes from "./routes/image.routes.js";
 import landlordDashboardRoutes from "./routes/landlordDashboard.routes.js";
 import leadRoutes from "./routes/leads.routes.js";
 import visitRoutes from "./routes/visits.routes.js";
 import wishlistRoutes from "./routes/wishlist.routes.js";
+import agreementRoutes from "./routes/agreement.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
 
 dotenv.config();
 
@@ -41,7 +43,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/admin", adminRoutes);
 // onboarding agreement
-app.use("/api/agreement", agreementRoutes);
+app.use("/api/onboarding/agreement", onBoardingAgreementRoutes);
 app.use("/api/images", imageRoutes);
 // dashboards
 app.use("/api/landlord/dashboard", landlordDashboardRoutes);
@@ -51,6 +53,10 @@ app.use("/api/landlord/dashboard", landlordDashboardRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/visits", visitRoutes);
 app.use("/api/wishlist", wishlistRoutes);
+
+// rent agreements and payments
+app.use("/api/rent/agreements", agreementRoutes);
+app.use("/api/payments", paymentRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

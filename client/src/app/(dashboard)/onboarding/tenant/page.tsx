@@ -118,7 +118,7 @@ function TenantOnboardingContent() {
     setLoading(true);
     try {
       const token = await getToken();
-      await apiClient.post('/api/agreement/tenant', {
+      await apiClient.post('/api/rent/agreement/tenant', {
         acceptedAt: new Date().toISOString(),
         terms: 'v1',
         ipAddress: 'client-side',

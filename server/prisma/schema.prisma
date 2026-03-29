@@ -24,18 +24,19 @@ model User {
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   // Relations
-  properties Property[]       @relation("LandlordProperties")
-  wishlist   Wishlist[]
-  visits     VisitSchedule[]
-  leads      Lead[]
-  agreements RentAgreement[]  @relation("LandlordAgreements")
-  analytics  AnalyticsEvent[]
-  documents  UserDocument[]
+  properties           Property[]         @relation("LandlordProperties")
+  wishlist             Wishlist[]
+  visits               VisitSchedule[]
+  leads                Lead[]
+  agreementsAsLandlord RentalAgreement[]  @relation("LandlordAgreements")
+  agreementsAsTenant   RentalAgreement[]  @relation("TenantAgreements")
+  analytics            AnalyticsEvent[]
+  documents            UserDocument[]
+  landlordAgreement    LandlordAgreement?
 
   // onboarding
   onboardingCompleted Boolean             @default(false) @map("onboarding_completed")
   onboardingProgress  OnboardingProgress?
-  LandlordAgreement   LandlordAgreement?
 
   @@map("users")
   @@schema("urbankey")
@@ -130,6 +131,12 @@ model Property {
   nearestMetroStation String? @map("nearest_metro_station")
   distanceToMetroKm   Float?  @map("distance_to_metro_km")
 
+  // NEW: Occupancy fields
+  isOccupied      Boolean   @default(false) @map("is_occupied")
+  currentTenantId String?   @map("current_tenant_id")
+  occupiedFrom    DateTime? @map("occupied_from")
+  occupiedUntil   DateTime? @map("occupied_until")
+
   // Metadata
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -140,7 +147,7 @@ model Property {
   wishlists  Wishlist[]
   visits     VisitSchedule[]
   leads      Lead[]
-  agreements RentAgreement[]
+  agreements RentalAgreement[]
   analytics  AnalyticsEvent[]
   embeddings PropertyEmbedding?
 
@@ -211,21 +218,87 @@ model Lead {
   @@schema("urbankey")
 }
 
-model RentAgreement {
-  id            String   @id @default(cuid())
-  propertyId    String   @map("property_id")
-  landlordId    String   @map("landlord_id")
-  tenantName    String   @map("tenant_name")
-  tenantPhone   String?  @map("tenant_phone")
-  monthlyRent   Float    @map("monthly_rent")
-  agreementDate DateTime @map("agreement_date")
-  pdfUrl        String?  @map("pdf_url")
-  createdAt     DateTime @default(now()) @map("created_at")
+// NEW: Rental Agreement Model
+model RentalAgreement {
+  id              String @id @default(cuid())
+  agreementNumber String @unique @map("agreement_number")
+  propertyId      String @map("property_id")
+  tenantId        String @map("tenant_id")
+  landlordId      String @map("landlord_id")
 
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  landlord User     @relation("LandlordAgreements", fields: [landlordId], references: [id])
+  // Agreement Details
+  startDate       DateTime @map("start_date")
+  endDate         DateTime @map("end_date")
+  monthlyRent     Float    @map("monthly_rent")
+  securityDeposit Float    @map("security_deposit")
+  maintenanceFee  Float?   @map("maintenance_fee")
+  noticePeriod    Int      @default(30) @map("notice_period")
 
-  @@map("rent_agreements")
+  // Terms
+  terms             String? @db.Text
+  specialConditions String? @map("special_conditions") @db.Text
+
+  // Status
+  status AgreementStatus @default(DRAFT)
+
+  // Signatures
+  signedByTenant   Boolean   @default(false) @map("signed_by_tenant")
+  signedByLandlord Boolean   @default(false) @map("signed_by_landlord")
+  signedAt         DateTime? @map("signed_at")
+
+  // Document
+  pdfUrl       String? @map("pdf_url")
+  signedPdfUrl String? @map("signed_pdf_url")
+
+  // Metadata
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  property Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant   User      @relation("TenantAgreements", fields: [tenantId], references: [id])
+  landlord User      @relation("LandlordAgreements", fields: [landlordId], references: [id])
+  payments Payment[]
+
+  @@unique([propertyId, tenantId, status])
+  @@map("rental_agreements")
+  @@schema("urbankey")
+}
+
+// NEW: Payment Model
+model Payment {
+  id          String @id @default(cuid())
+  agreementId String @map("agreement_id")
+
+  // Payment Details
+  amount      Float
+  month       Int? // Month number (1,2,3... for rent payments)
+  year        Int? // Year for the payment
+  paymentDate DateTime @map("payment_date")
+  dueDate     DateTime @map("due_date")
+
+  // Payment Type
+  type PaymentType @default(RENT)
+
+  // Status
+  status PaymentStatus @default(PENDING)
+
+  // Additional Info
+  description   String?
+  receiptUrl    String?       @map("receipt_url")
+  transactionId String?       @map("transaction_id")
+  paymentMethod PaymentMethod @default(CASH)
+
+  // Metadata
+  recordedBy String?  @map("recorded_by") // userId who recorded this
+  notes      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  agreement RentalAgreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
   @@schema("urbankey")
 }
 
@@ -323,6 +396,47 @@ enum DocumentStatus {
   PENDING
   APPROVED
   REJECTED
+
+  @@schema("urbankey")
+}
+
+// Enums for Agreement
+enum AgreementStatus {
+  DRAFT
+  PENDING_SIGNATURE
+  ACTIVE
+  EXPIRED
+  TERMINATED
+
+  @@schema("urbankey")
+}
+
+// Enums for Payment
+enum PaymentType {
+  RENT
+  SECURITY_DEPOSIT
+  MAINTENANCE
+  LATE_FEE
+  OTHER
+
+  @@schema("urbankey")
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  REFUNDED
+
+  @@schema("urbankey")
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  UPI
+  CHEQUE
+  OTHER
 
   @@schema("urbankey")
 }

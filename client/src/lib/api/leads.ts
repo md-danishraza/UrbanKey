@@ -7,6 +7,7 @@ export interface Lead {
     id: string;
     title: string;
     images: { imageUrl: string; isPrimary: boolean }[];
+    rent: number;
   };
   tenant: {
     id: string;

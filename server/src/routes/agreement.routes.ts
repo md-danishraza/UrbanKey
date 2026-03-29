@@ -1,17 +1,25 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import {
-  acceptLandlordAgreement,
-  getAgreementStatus,
+  createAgreement,
+  getLandlordAgreements,
+  getTenantAgreements,
+  getAgreementById,
+  signAgreement,
+  getAgreementPDF,
 } from "../controllers/agreement.controller.js";
 
 const router = Router();
 
-// All agreement routes require authentication
+// All routes require authentication
 router.use(requireAuth);
 
-// Landlord agreement routes
-router.post("/landlord", acceptLandlordAgreement);
-router.get("/landlord", getAgreementStatus);
+// Agreement CRUD
+router.post("/", createAgreement);
+router.get("/landlord", getLandlordAgreements);
+router.get("/tenant", getTenantAgreements);
+router.get("/:id", getAgreementById);
+router.get("/:id/pdf", getAgreementPDF);
+router.post("/:id/sign", signAgreement);
 
 export default router;

@@ -157,7 +157,7 @@ function LandlordOnboardingContent() {
     setSubmitting(true);
     try {
       const token = await getToken();
-      await apiClient.post('/api/agreement/landlord', {
+      await apiClient.post('/api/rent/agreement/landlord', {
         acceptedAt: new Date().toISOString(),
         terms: 'v1',
         ipAddress: 'client-side',
