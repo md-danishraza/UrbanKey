@@ -7,9 +7,6 @@ import {
   updateUser,
   deleteUser,
   getUserProperties,
-  getUserWishlist,
-  getUserVisits,
-  getUserLeads,
   syncUser,
   getLandlordProperties,
 } from "../controllers/user.controller.js";
@@ -28,9 +25,7 @@ router.delete("/me", deleteUser);
 // User specific routes
 router.get("/:userId", getUserById);
 router.get("/:userId/properties", getUserProperties);
-router.get("/:userId/wishlist", getUserWishlist);
-router.get("/:userId/visits", getUserVisits);
-router.get("/:userId/leads", getUserLeads);
+
 router.get("/landlord/me", requireAuth, getLandlordProperties);
 
 export default router;
