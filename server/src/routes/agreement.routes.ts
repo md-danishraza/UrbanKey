@@ -7,6 +7,7 @@ import {
   getAgreementById,
   signAgreement,
   getAgreementPDF,
+  getTenantCurrentRental,
 } from "../controllers/agreement.controller.js";
 
 const router = Router();
@@ -18,6 +19,7 @@ router.use(requireAuth);
 router.post("/", createAgreement);
 router.get("/landlord", getLandlordAgreements);
 router.get("/tenant", getTenantAgreements);
+router.get("/tenant/current", getTenantCurrentRental);
 router.get("/:id", getAgreementById);
 router.get("/:id/pdf", getAgreementPDF);
 router.post("/:id/sign", signAgreement);

@@ -33,7 +33,7 @@ export function PropertyCard({ property, showActions = true, className }: Proper
   };
 
   return (
-    <Card className={cn("overflow-hidden hover:shadow-lg transition-shadow group", className)}>
+    <Card className={cn("overflow-hidden hover:shadow-lg transition-shadow group pt-0", className)}>
       <div className="relative h-48 overflow-hidden">
         <img
           src={getPrimaryImage() || '/images/property-placeholder.jpg'}

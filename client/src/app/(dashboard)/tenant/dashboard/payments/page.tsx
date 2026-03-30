@@ -3,14 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@clerk/nextjs';
-import { ArrowLeft, CreditCard, Calendar, DollarSign,  Upload, Eye, Loader2, CheckCircle, Clock,  } from 'lucide-react';
+import { ArrowLeft, CreditCard, Calendar, DollarSign, Eye, Loader2, CheckCircle, Clock, Download } from 'lucide-react';
 import { toast } from 'sonner';
-import { Card, CardContent,  } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { PaymentForm } from '@/components/payment/PaymentForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { apiClient } from '@/lib/api/api-client';
 import { formatCurrency } from '@/lib/utils';
 
@@ -24,9 +23,9 @@ interface Payment {
   type: string;
   status: string;
   description?: string;
-  receiptUrl?: string;
   transactionId?: string;
   paymentMethod: string;
+  notes?: string;
 }
 
 interface Agreement {
@@ -46,7 +45,6 @@ export default function TenantPaymentsPage() {
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
 
   useEffect(() => {
@@ -59,12 +57,12 @@ export default function TenantPaymentsPage() {
       const token = await getToken();
       
       // Get current agreement
-      const agreementResponse:any = await apiClient.get('/api/rent/agreements/tenant/current', token);
+      const agreementResponse: any = await apiClient.get('/api/rent/agreements/tenant/current', token);
       if (agreementResponse.agreement) {
         setAgreement(agreementResponse.agreement);
         
         // Get payments for this agreement
-        const paymentsResponse:any = await apiClient.get(`/api/payments/agreement/${agreementResponse.agreement.id}`, token);
+        const paymentsResponse: any = await apiClient.get(`/api/payments/agreement/${agreementResponse.agreement.id}`, token);
         setPayments(paymentsResponse.payments || []);
       }
     } catch (error) {
@@ -112,6 +110,8 @@ export default function TenantPaymentsPage() {
   const pendingPayments = payments.filter(p => p.status === 'PENDING' || p.status === 'OVERDUE');
   const paidPayments = payments.filter(p => p.status === 'PAID');
 
+  // console.log(selectedPayment)
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -153,6 +153,10 @@ export default function TenantPaymentsPage() {
           </Link>
           <h1 className="text-2xl font-bold">Payment History</h1>
           <p className="text-gray-600 mt-1">Track your rent payments for {agreement.property.title}</p>
+          <p className="text-sm text-blue-600 mt-2">
+            <Clock className="h-3 w-3 inline mr-1" />
+            Payments are updated by your landlord when received
+          </p>
         </div>
 
         {/* Payment Summary Cards */}
@@ -238,25 +242,6 @@ export default function TenantPaymentsPage() {
                             ₹{formatCurrency(payment.amount)}
                           </p>
                           {getStatusBadge(payment.status)}
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" size="sm" className="gap-1">
-                                <Upload className="h-4 w-4" />
-                                Record Payment
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-md">
-                              <DialogHeader>
-                                <DialogTitle>Record Payment</DialogTitle>
-                              </DialogHeader>
-                              <PaymentForm
-                                agreementId={agreement.id}
-                                payment={payment}
-                                onSuccess={loadData}
-                                onCancel={() => {}}
-                              />
-                            </DialogContent>
-                          </Dialog>
                         </div>
                       </div>
                     </CardContent>
@@ -286,7 +271,7 @@ export default function TenantPaymentsPage() {
                           </div>
                           <div>
                             <p className="font-semibold">
-                              {payment.type === 'RENT' ? `Rent - Month ${payment.month}` : payment.type}
+                              {payment.type === 'RENT' ?  payment.month===null ? payment.notes : `Rent - Month ${payment.month}` : payment.type}
                             </p>
                             <p className="text-sm text-gray-500">
                               Paid on: {formatDate(payment.paymentDate)}
@@ -319,6 +304,48 @@ export default function TenantPaymentsPage() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Payment Details Modal */}
+        {selectedPayment && (
+          <Dialog open={!!selectedPayment} onOpenChange={() => setSelectedPayment(null)}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Payment Details</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Amount</span>
+                  <span className="font-bold">₹{formatCurrency(selectedPayment.amount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Type</span>
+                  <span>{selectedPayment.type === 'RENT' ? `Rent - Month ${selectedPayment.month}` : selectedPayment.type}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Payment Date</span>
+                  <span>{formatDate(selectedPayment.paymentDate)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Method</span>
+                  <span>{selectedPayment.paymentMethod}</span>
+                </div>
+                {selectedPayment.transactionId && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Transaction ID</span>
+                    <span className="text-sm">{selectedPayment.transactionId}</span>
+                  </div>
+                )}
+                {selectedPayment.notes && (
+                  <div>
+                    <span className="text-gray-500">Notes</span>
+                    <p className="text-sm mt-1">{selectedPayment.notes}</p>
+                  </div>
+                )}
+
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );

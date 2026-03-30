@@ -9,10 +9,11 @@ function validateId(id: string | string[] | undefined): string {
   return id;
 }
 
-// Record a payment (tenant action)
+// Record a payment (landlord action)
 export const recordPayment = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.auth?.userId;
+
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -22,9 +23,13 @@ export const recordPayment = async (req: AuthRequest, res: Response) => {
       amount,
       paymentDate,
       type,
+      month,
+      year,
       description,
       transactionId,
       paymentMethod,
+      notes,
+      status,
     } = req.body;
 
     // Verify agreement belongs to tenant
@@ -36,10 +41,11 @@ export const recordPayment = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: "Agreement not found" });
     }
 
-    if (agreement.tenantId !== userId) {
+    if (agreement.landlordId !== userId) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
+    // Create payment with PENDING status by default
     const payment = await prisma.payment.create({
       data: {
         agreementId,
@@ -47,10 +53,13 @@ export const recordPayment = async (req: AuthRequest, res: Response) => {
         paymentDate: new Date(paymentDate),
         dueDate: new Date(paymentDate),
         type,
+        month: month || null,
+        year: year || null,
         description,
         transactionId,
         paymentMethod,
-        status: "PAID",
+        notes,
+        status: status || "PENDING", // Default to PENDING if not specified
         recordedBy: userId,
       },
     });

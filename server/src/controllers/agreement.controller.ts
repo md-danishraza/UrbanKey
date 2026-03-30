@@ -212,6 +212,93 @@ export const getTenantAgreements = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Get tenant's current rental (active or pending)
+export const getTenantCurrentRental = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // First try to get active agreement
+    let agreement = await prisma.rentalAgreement.findFirst({
+      where: {
+        tenantId: userId,
+        status: "ACTIVE",
+      },
+      include: {
+        property: {
+          select: {
+            id: true,
+            title: true,
+            addressLine1: true,
+            city: true,
+            images: {
+              where: { isPrimary: true },
+              take: 1,
+            },
+          },
+        },
+        landlord: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: { startDate: "desc" },
+    });
+
+    // If no active agreement, check for pending signature
+    if (!agreement) {
+      agreement = await prisma.rentalAgreement.findFirst({
+        where: {
+          tenantId: userId,
+          status: "PENDING_SIGNATURE",
+        },
+        include: {
+          property: {
+            select: {
+              id: true,
+              title: true,
+              addressLine1: true,
+              city: true,
+              images: {
+                where: { isPrimary: true },
+                take: 1,
+              },
+            },
+          },
+          landlord: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phone: true,
+              avatarUrl: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+    }
+
+    res.json({
+      success: true,
+      agreement,
+    });
+  } catch (error) {
+    console.error("Error fetching tenant current rental:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 // Get single agreement by ID
 export const getAgreementById = async (req: AuthRequest, res: Response) => {
   try {
