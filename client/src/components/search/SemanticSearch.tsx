@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Search, Loader2, Sparkles, X, TrendingUp } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -49,7 +49,6 @@ export function SemanticSearch({
     if (inputRef.current) {
       inputRef.current.focus();
     }
-    // Auto-search after a short delay
     setTimeout(() => {
       onSearch(suggestion);
     }, 100);
@@ -69,7 +68,7 @@ export function SemanticSearch({
           "bg-white"
         )}>
           {/* Sparkle Icon */}
-          <div className="absolute left-4 top-1/2 -translate-y-1/2">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
             <Sparkles className="h-5 w-5 text-purple-500 animate-pulse" />
           </div>
 
@@ -87,21 +86,21 @@ export function SemanticSearch({
             }}
             onBlur={() => {
               setIsFocused(false);
-              // Delay hiding suggestions to allow clicking
               setTimeout(() => setShowSuggestions(false), 200);
             }}
             placeholder={placeholder || "Try: 'spacious 2BHK near metro with power backup'"}
-            className="pl-12 pr-24 h-14 text-base border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="pl-12 pr-28 h-14 text-base border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
 
-          {/* Clear Button */}
+          {/* Clear Button - positioned left of search button */}
           {query && !isLoading && (
             <button
               type="button"
               onClick={handleClear}
-              className="absolute right-20 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute right-28 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors z-10"
+              aria-label="Clear search"
             >
-              <X className="h-4 w-4" />
+              <X className="h-8 w-8" />
             </button>
           )}
 
@@ -109,7 +108,7 @@ export function SemanticSearch({
           <Button
             type="submit"
             disabled={isLoading || !query.trim()}
-            className="absolute right-1 top-1/2 -translate-y-1/2 h-10 rounded-lg px-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+            className="absolute right-1 top-1/2 -translate-y-1/2 h-10 rounded-lg px-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 z-10"
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -123,8 +122,8 @@ export function SemanticSearch({
         </div>
 
         {/* Suggestions Dropdown */}
-        {showSuggestions && !isLoading && (
-          <div className="absolute z-10 mt-2 w-full bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        {showSuggestions && !isLoading && query && (
+          <div className="absolute z-20 mt-2 w-full bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-2">
               <div className="flex items-center gap-2 px-3 py-1 text-xs text-gray-500">
                 <TrendingUp className="h-3 w-3" />
@@ -148,7 +147,7 @@ export function SemanticSearch({
 
       {/* AI Badge */}
       <div className="flex items-center justify-between mt-3">
-        <p className="text-xs text-gray-500 flex items-center gap-1">
+        <p className="text-xs text-white flex items-center gap-1">
           <Sparkles className="h-3 w-3 text-purple-500" />
           AI-powered semantic search understands natural language
         </p>

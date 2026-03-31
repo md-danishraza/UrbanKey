@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Filter, Grid, Map, Loader2, SlidersHorizontal } from 'lucide-react';
+import { Filter, Grid, Map, Loader2, SlidersHorizontal, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { PropertyFilters } from '@/components/properties/PropertyFilters';
 import { PropertyCard } from '@/components/properties/PropertyCard';
 import { SemanticSearch } from '@/components/search/SemanticSearch';
+import { PropertyMapCluster } from '@/components/map/PropertyMapCluster';
 import { apiClient } from '@/lib/api/api-client';
 import { SearchFilters } from '@/types/property';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -34,6 +35,7 @@ export default function PropertiesSearchPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   // Load properties on mount
   useEffect(() => {
@@ -43,7 +45,7 @@ export default function PropertiesSearchPage() {
   const loadProperties = async () => {
     setIsLoading(true);
     try {
-      const response: any = await apiClient.get('/api/properties?limit=20');
+      const response: any = await apiClient.get('/api/properties?limit=50');
       if (response.data) {
         setProperties(response.data);
       } else if (Array.isArray(response)) {
@@ -84,7 +86,6 @@ export default function PropertiesSearchPage() {
     setIsLoading(true);
     setFilters(newFilters);
     try {
-      // Build query string
       const params = new URLSearchParams();
       
       if (newFilters.city) params.append('city', newFilters.city);
@@ -116,10 +117,15 @@ export default function PropertiesSearchPage() {
     }
   };
 
-  const handleClearSearch = () => {
+  const handleResetFilters = () => {
     setSearchQuery('');
     setFilters(defaultFilters);
     loadProperties();
+    toast.success('All filters cleared');
+  };
+
+  const handlePropertyClick = (propertyId: string) => {
+    window.location.href = `/properties/${propertyId}`;
   };
 
   return (
@@ -145,7 +151,8 @@ export default function PropertiesSearchPage() {
 
       {/* Search Results */}
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
+        {/* Toolbar */}
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
           <div>
             <p className="text-gray-600">
               {properties.length} properties found
@@ -153,20 +160,39 @@ export default function PropertiesSearchPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            {/* Reset Filters Button */}
+            {(searchQuery || filters.city || filters.bhk.length > 0 || filters.furnishing.length > 0 || 
+              filters.hasWater247 || filters.hasPowerBackup || filters.hasIglPipeline || 
+              filters.isDirectOwner || filters.nearbyMetro) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetFilters}
+                className="gap-2 text-red-600 border-red-200 hover:bg-red-50"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reset Filters
+              </Button>
+            )}
+            
             {/* View Toggle */}
             <Button
               variant={viewMode === 'grid' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('grid')}
+              className="gap-1"
             >
               <Grid className="h-4 w-4" />
+              Grid
             </Button>
             <Button
               variant={viewMode === 'map' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setViewMode('map')}
+              onClick={() => setIsMapOpen(true)}
+              className="gap-1"
             >
               <Map className="h-4 w-4" />
+              Map
             </Button>
             
             {/* Filter Button for Mobile */}
@@ -216,7 +242,7 @@ export default function PropertiesSearchPage() {
         ) : properties.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500 mb-4">No properties found matching your criteria</p>
-            <Button variant="outline" onClick={handleClearSearch}>
+            <Button variant="outline" onClick={handleResetFilters}>
               Clear all filters
             </Button>
           </div>
@@ -228,6 +254,14 @@ export default function PropertiesSearchPage() {
           </div>
         )}
       </div>
+
+      {/* Map Modal */}
+      <PropertyMapCluster
+        properties={properties.filter(p => p.latitude && p.longitude)}
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        onPropertyClick={handlePropertyClick}
+      />
     </div>
   );
 }

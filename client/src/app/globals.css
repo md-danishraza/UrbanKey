@@ -138,6 +138,8 @@
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+
+/* semantic search comp */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -151,4 +153,24 @@
 
 .animate-in {
   animation: fadeIn 0.2s ease-out;
+}
+
+
+/* cluster map */
+/* Property popup styles */
+.property-popup .mapboxgl-popup-content {
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.property-popup .mapboxgl-popup-close-button {
+  font-size: 16px;
+  padding: 4px 8px;
+  color: #666;
+}
+
+.property-popup .mapboxgl-popup-close-button:hover {
+  background: none;
+  color: #000;
 }
