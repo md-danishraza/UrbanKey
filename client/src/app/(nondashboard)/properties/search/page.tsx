@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { Filter, Grid, Map, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Filter, Grid, Map, Loader2, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { PropertyFilters } from '@/components/properties/PropertyFilters';
 import { PropertyCard } from '@/components/properties/PropertyCard';
 import { SemanticSearch } from '@/components/search/SemanticSearch';
 import { apiClient } from '@/lib/api/api-client';
 import { SearchFilters } from '@/types/property';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { toast } from 'sonner';
 
 // Default filter values
 const defaultFilters: SearchFilters = {
@@ -31,15 +33,48 @@ export default function PropertiesSearchPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+
+  // Load properties on mount
+  useEffect(() => {
+    loadProperties();
+  }, []);
+
+  const loadProperties = async () => {
+    setIsLoading(true);
+    try {
+      const response: any = await apiClient.get('/api/properties?limit=20');
+      if (response.data) {
+        setProperties(response.data);
+      } else if (Array.isArray(response)) {
+        setProperties(response);
+      } else {
+        setProperties([]);
+      }
+    } catch (error) {
+      console.error('Failed to load properties:', error);
+      toast.error('Failed to load properties');
+      setProperties([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSemanticSearch = async (query: string) => {
+    if (!query.trim()) {
+      loadProperties();
+      return;
+    }
+    
     setIsLoading(true);
     setSearchQuery(query);
     try {
       const response: any = await apiClient.get(`/api/properties/semantic?q=${encodeURIComponent(query)}`);
       setProperties(response.results || []);
     } catch (error) {
-      console.error('Search failed:', error);
+      console.error('Semantic search failed:', error);
+      toast.error('Search failed, showing all properties');
+      loadProperties();
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +87,6 @@ export default function PropertiesSearchPage() {
       // Build query string
       const params = new URLSearchParams();
       
-      // Add filters only if they have values
       if (newFilters.city) params.append('city', newFilters.city);
       if (newFilters.minRent > 0) params.append('minRent', newFilters.minRent.toString());
       if (newFilters.maxRent < 100000) params.append('maxRent', newFilters.maxRent.toString());
@@ -65,10 +99,18 @@ export default function PropertiesSearchPage() {
       if (newFilters.isDirectOwner) params.append('isDirectOwner', 'true');
       if (newFilters.nearbyMetro) params.append('nearbyMetro', 'true');
       
-      const response: any = await apiClient.get(`/api/properties?${params.toString()}`);
+      const queryString = params.toString();
+      const url = queryString ? `/api/properties?${queryString}` : '/api/properties';
+      
+      const response: any = await apiClient.get(url);
       setProperties(response.data || []);
+      
+      if (response.data?.length === 0) {
+        toast.info('No properties found matching your criteria');
+      }
     } catch (error) {
       console.error('Filter search failed:', error);
+      toast.error('Failed to apply filters');
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +118,8 @@ export default function PropertiesSearchPage() {
 
   const handleClearSearch = () => {
     setSearchQuery('');
-    handleFilterSearch(defaultFilters);
+    setFilters(defaultFilters);
+    loadProperties();
   };
 
   return (
@@ -110,6 +153,7 @@ export default function PropertiesSearchPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            {/* View Toggle */}
             <Button
               variant={viewMode === 'grid' ? 'default' : 'outline'}
               size="sm"
@@ -124,24 +168,45 @@ export default function PropertiesSearchPage() {
             >
               <Map className="h-4 w-4" />
             </Button>
+            
+            {/* Filter Button for Mobile */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="lg:hidden">
-                  <Filter className="h-4 w-4 mr-2" />
+                <Button variant="outline" size="sm" className="lg:hidden gap-2">
+                  <SlidersHorizontal className="h-4 w-4" />
                   Filters
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left">
+              <SheetContent side="left" className="w-[320px] p-0 overflow-y-auto">
+                <SheetHeader className="px-4 py-3 border-b sticky top-0 bg-white z-10">
+                  <SheetTitle>Filters</SheetTitle>
+                  <SheetDescription>
+                    Refine your property search by selecting filters below.
+                  </SheetDescription>
+                </SheetHeader>
                 <PropertyFilters filters={filters} setFilters={handleFilterSearch} />
               </SheetContent>
             </Sheet>
+            
+            {/* Filter Toggle for Desktop */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+              className="hidden lg:flex gap-2"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              {isFiltersOpen ? 'Hide Filters' : 'Show Filters'}
+            </Button>
           </div>
         </div>
 
-        {/* Desktop Filters */}
-        <div className="hidden lg:block mb-6">
-          <PropertyFilters filters={filters} setFilters={handleFilterSearch} />
-        </div>
+        {/* Desktop Filters - Collapsible */}
+        <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} className="hidden lg:block mb-6">
+          <CollapsibleContent>
+            <PropertyFilters filters={filters} setFilters={handleFilterSearch} />
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Results Grid */}
         {isLoading ? (

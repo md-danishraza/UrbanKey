@@ -210,6 +210,7 @@ export default function LandlordPaymentsPage() {
               <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle>Record Rent Payment</DialogTitle>
+                  
                 </DialogHeader>
                 <form onSubmit={recordPayment} className="space-y-4">
                   <div className="space-y-2">

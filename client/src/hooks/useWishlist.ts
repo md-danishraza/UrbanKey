@@ -10,30 +10,33 @@ import {
 } from "@/lib/api/wishlist";
 
 export function useWishlist(propertyId?: string) {
-  const { getToken } = useAuth();
+  const { getToken, isSignedIn } = useAuth();
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const checkStatus = useCallback(async () => {
-    if (!propertyId) return;
+    if (!propertyId || !isSignedIn) return;
 
     try {
       const token = await getToken();
-      if (!token) throw new Error("not authorized");
+      if (!token) throw new Error("unauthorized");
       const response: any = await checkWishlistStatus(token, propertyId);
       setIsInWishlist(response.isInWishlist);
     } catch (error) {
       console.error("Failed to check wishlist status:", error);
     }
-  }, [propertyId, getToken]);
+  }, [propertyId, getToken, isSignedIn]);
 
   const toggleWishlist = useCallback(async () => {
-    if (!propertyId) return;
+    if (!propertyId || !isSignedIn) {
+      toast.error("Please login to save properties");
+      return;
+    }
 
     setIsLoading(true);
     try {
       const token = await getToken();
-      if (!token) throw new Error("not authorized");
+      if (!token) throw new Error("unauthorized");
       if (isInWishlist) {
         await removeFromWishlist(token, propertyId);
         setIsInWishlist(false);
@@ -49,7 +52,7 @@ export function useWishlist(propertyId?: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [propertyId, isInWishlist, getToken]);
+  }, [propertyId, isInWishlist, getToken, isSignedIn]);
 
   useEffect(() => {
     checkStatus();

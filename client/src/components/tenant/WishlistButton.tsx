@@ -4,6 +4,7 @@ import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWishlist } from '@/hooks/useWishlist';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@clerk/nextjs';
 
 interface WishlistButtonProps {
   propertyId: string;
@@ -13,7 +14,13 @@ interface WishlistButtonProps {
 }
 
 export function WishlistButton({ propertyId, className, variant = 'outline', size = 'icon' }: WishlistButtonProps) {
+  const { isSignedIn } = useAuth();
   const { isInWishlist, isLoading, toggleWishlist } = useWishlist(propertyId);
+
+  // Don't show wishlist button for non-authenticated users
+  if (!isSignedIn) {
+    return null;
+  }
 
   return (
     <Button

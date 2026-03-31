@@ -1,7 +1,6 @@
 import type { Request, Response } from "express";
 import type { AuthRequest } from "../middleware/auth.middleware.js";
 import prisma from "../config/database.js";
-import { BHKType, FurnishingType, TenantType } from "@prisma/client";
 
 import {
   upsertPropertyEmbedding,
@@ -55,18 +54,41 @@ export const getAllProperties = async (req: Request, res: Response) => {
       if (maxRent) where.rent.lte = Number(maxRent);
     }
 
+    // Fix BHK filter - map frontend values to enum values
     if (bhk) {
       const bhkArray = (bhk as string).split(",");
-      where.bhk = { in: bhkArray as BHKType[] };
+      const bhkMapping: Record<string, string> = {
+        "1BHK": "ONE_BHK",
+        "2BHK": "TWO_BHK",
+        "3BHK": "THREE_BHK",
+        "4BHK+": "FOUR_BHK_PLUS",
+      };
+      const mappedBhk = bhkArray.map((b) => bhkMapping[b] || b);
+      where.bhk = { in: mappedBhk };
     }
 
+    // Fix furnishing filter - map frontend values to enum values
     if (furnishing) {
       const furnishingArray = (furnishing as string).split(",");
-      where.furnishing = { in: furnishingArray as FurnishingType[] };
+      const furnishingMapping: Record<string, string> = {
+        unfurnished: "UNFURNISHED",
+        "semi-furnished": "SEMI_FURNISHED",
+        "fully-furnished": "FULLY_FURNISHED",
+      };
+      const mappedFurnishing = furnishingArray.map(
+        (f) => furnishingMapping[f] || f
+      );
+      where.furnishing = { in: mappedFurnishing };
     }
 
+    // Fix tenantType filter - map frontend values to enum values
     if (tenantType) {
-      where.tenantType = tenantType as TenantType;
+      const tenantMapping: Record<string, string> = {
+        family: "FAMILY",
+        bachelors: "BACHELORS",
+        both: "BOTH",
+      };
+      where.tenantType = tenantMapping[tenantType as string] || tenantType;
     }
 
     if (hasWater247 === "true") where.hasWater247 = true;
@@ -74,6 +96,8 @@ export const getAllProperties = async (req: Request, res: Response) => {
     if (hasIglPipeline === "true") where.hasIglPipeline = true;
     if (isDirectOwner === "true") where.isBroker = false;
     if (nearbyMetro === "true") where.distanceToMetroKm = { not: null };
+
+    console.log("Where clause:", JSON.stringify(where, null, 2));
 
     const [properties, total] = await Promise.all([
       prisma.property.findMany({
@@ -107,7 +131,10 @@ export const getAllProperties = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error fetching properties:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 };
 

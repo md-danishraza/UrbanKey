@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { apiClient } from '@/lib/api/api-client';
 import { formatCurrency } from '@/lib/utils';
 
@@ -310,7 +310,10 @@ export default function TenantPaymentsPage() {
           <Dialog open={!!selectedPayment} onOpenChange={() => setSelectedPayment(null)}>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Payment Details</DialogTitle>
+              <DialogTitle>Record Payment</DialogTitle>
+              <DialogDescription>
+                Enter the payment details for this rent payment.
+              </DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
                 <div className="flex justify-between">

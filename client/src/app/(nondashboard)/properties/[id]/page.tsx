@@ -23,6 +23,7 @@ import { WhatsAppButton } from '@/components/common/WhatsAppButton';
 import { WishlistButton } from '@/components/tenant/WishlistButton';
 import { apiClient } from '@/lib/api/api-client';
 import { formatCurrency } from '@/lib/utils';
+import { PropertyMap } from '@/components/properties/PropertyMap';
 
 export default function PropertyDetailsPage() {
   const params = useParams();
@@ -237,6 +238,15 @@ export default function PropertyDetailsPage() {
                 )}
 
                 <Separator className="my-4" />
+                {/* map */}
+                <PropertyMap
+                              latitude={property.latitude}
+                              longitude={property.longitude}
+                              address={`${property.addressLine1}, ${property.city}`}
+                              title={property.title}
+                />
+                
+                 <Separator className="my-4" />
 
                 {/* Broker Info */}
                 {property.isBroker && property.brokerageFee && (

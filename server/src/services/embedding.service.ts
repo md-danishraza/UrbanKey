@@ -89,47 +89,106 @@ export async function upsertPropertyEmbedding(
   }
 }
 
+// Search properties by semantic similarity
 export async function semanticSearch(
   query: string,
   limit: number = 10
 ): Promise<any[]> {
   try {
+    // Generate embedding for the search query
     const queryEmbedding = await generateEmbedding(query);
 
-    await prisma.$executeRaw`SET search_path TO urbankey, public`;
+    // First, check if there are any embeddings
+    const embeddingCount: any = await prisma.$queryRaw`
+      SELECT COUNT(*) FROM "urbankey"."property_embeddings" WHERE embedding IS NOT NULL
+    `;
 
-    const results = await prisma.$queryRaw`
-        SELECT 
-          p.id,
-          p.title,
-          p.description,
-          p.rent,
-          p.bhk,
-          p.furnishing,
-          p.city,
-          p.has_water_247,
-          p.has_power_backup,
-          p.has_igl_pipeline,
-          p.nearest_metro_station,
-          p.distance_to_metro_km,
-          p.is_broker,
-          p.brokerage_fee,
-          (SELECT json_agg(json_build_object('imageUrl', pi.image_url, 'isPrimary', pi.is_primary))
-           FROM property_images pi 
-           WHERE pi.property_id = p.id) as images,
-          1 - (pe.embedding <=> ${JSON.stringify(
-            queryEmbedding
-          )}::vector) as similarity
-        FROM properties p
-        JOIN property_embeddings pe ON p.id = pe.property_id
-        WHERE p.is_active = true
-        ORDER BY pe.embedding <=> ${JSON.stringify(queryEmbedding)}::vector
-        LIMIT ${limit}
-      `;
+    console.log("Embedding count:", embeddingCount);
 
+    // If no embeddings, fallback to regular search
+    const count = Number(Object.values(embeddingCount[0])[0]);
+    if (count === 0) {
+      console.log("No embeddings found, falling back to regular search");
+      return fallbackSearch(query, limit);
+    }
+
+    // Perform vector similarity search - using "urbankey"."vector" explicitly
+    const results: any = await prisma.$queryRaw`
+      SELECT 
+        p.id,
+        p.title,
+        p.description,
+        p.rent,
+        p.bhk,
+        p.furnishing,
+        p.city,
+        p.has_water_247,
+        p.has_power_backup,
+        p.has_igl_pipeline,
+        p.nearest_metro_station,
+        p.distance_to_metro_km,
+        p.is_broker,
+        p.brokerage_fee,
+        p.address_line1,
+        p.is_active,
+        (SELECT json_agg(json_build_object('imageUrl', pi.image_url, 'isPrimary', pi.is_primary))
+         FROM "urbankey"."property_images" pi 
+         WHERE pi.property_id = p.id) as images,
+        1 - (pe.embedding <=> ${JSON.stringify(
+          queryEmbedding
+        )}::"urbankey"."vector") as similarity
+      FROM "urbankey"."properties" p
+      JOIN "urbankey"."property_embeddings" pe ON p.id = pe.property_id
+      WHERE p.is_active = true
+        AND pe.embedding IS NOT NULL
+      ORDER BY pe.embedding <=> ${JSON.stringify(
+        queryEmbedding
+      )}::"urbankey"."vector"
+      LIMIT ${limit}
+    `;
+
+    console.log(`Found ${results.length} results via semantic search`);
     return results as any[];
   } catch (error) {
     console.error("Error performing semantic search:", error);
-    throw new Error("Failed to perform semantic search");
+    return fallbackSearch(query, limit);
+  }
+}
+
+// Fallback search when embedding fails
+async function fallbackSearch(query: string, limit: number): Promise<any[]> {
+  try {
+    const results = await prisma.$queryRaw`
+      SELECT 
+        p.id,
+        p.title,
+        p.description,
+        p.rent,
+        p.bhk,
+        p.furnishing,
+        p.city,
+        p.has_water_247,
+        p.has_power_backup,
+        p.has_igl_pipeline,
+        p.nearest_metro_station,
+        p.distance_to_metro_km,
+        p.is_broker,
+        p.brokerage_fee,
+        p.address_line1,
+        p.is_active,
+        (SELECT json_agg(json_build_object('imageUrl', pi.image_url, 'isPrimary', pi.is_primary))
+         FROM urbankey.property_images pi 
+         WHERE pi.property_id = p.id) as images,
+        ts_rank(to_tsvector('english', p.title || ' ' || COALESCE(p.description, '')), plainto_tsquery('english', ${query})) as relevance
+      FROM urbankey.properties p
+      WHERE p.is_active = true
+        AND (p.title ILIKE ${`%${query}%`} OR p.description ILIKE ${`%${query}%`} OR p.city ILIKE ${`%${query}%`})
+      ORDER BY relevance DESC
+      LIMIT ${limit}
+    `;
+    return results as any[];
+  } catch (err) {
+    console.error("Fallback search failed:", err);
+    return [];
   }
 }
