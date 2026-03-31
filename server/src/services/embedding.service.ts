@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import prisma from "../config/database.js";
+import crypto from "crypto";
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
 const EMBEDDING_MODEL = "gemini-embedding-001";
 
 // Generate embedding for property text
@@ -23,6 +23,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   }
 }
 
+// Generate property text for embedding
 export function generatePropertyText(property: any): string {
   const amenities = [];
   if (property.hasWater247) amenities.push("24/7 water supply");
@@ -30,24 +31,25 @@ export function generatePropertyText(property: any): string {
   if (property.hasIglPipeline) amenities.push("IGL gas pipeline");
 
   return `
-      ${property.title}
-      ${property.description || ""}
-      ${property.bhk} apartment
-      Rent: ₹${property.rent}
-      Furnishing: ${property.furnishing}
-      Tenant type: ${property.tenantType}
-      Location: ${property.addressLine1}, ${property.city}
-      ${
-        property.nearestMetroStation
-          ? `Near ${property.nearestMetroStation} metro (${property.distanceToMetroKm}km)`
-          : ""
-      }
-      Amenities: ${amenities.join(", ")}
-    `
+    ${property.title}
+    ${property.description || ""}
+    ${property.bhk} apartment
+    Rent: ₹${property.rent}
+    Furnishing: ${property.furnishing}
+    Tenant type: ${property.tenantType}
+    Location: ${property.addressLine1}, ${property.city}
+    ${
+      property.nearestMetroStation
+        ? `Near ${property.nearestMetroStation} metro (${property.distanceToMetroKm}km)`
+        : ""
+    }
+    Amenities: ${amenities.join(", ")}
+  `
     .trim()
     .replace(/\s+/g, " ");
 }
 
+// Create or update property embedding
 export async function upsertPropertyEmbedding(
   propertyId: string
 ): Promise<void> {
@@ -67,21 +69,24 @@ export async function upsertPropertyEmbedding(
     const embedding = await generateEmbedding(text);
     console.log(`Embedding generated with ${embedding.length} dimensions`);
 
+    // Generate a unique ID since raw queries bypass Prisma's cuid() generator
+    const newId = crypto.randomUUID();
+
     // Set search path
     await prisma.$executeRaw`SET search_path TO urbankey, public`;
 
-    // Simple insert with ON CONFLICT
+    // Simple insert with ON CONFLICT and explicitly provided ID
     await prisma.$executeRaw`
-        INSERT INTO property_embeddings (property_id, content, embedding, updated_at)
-        VALUES (${propertyId}, ${text}, ${JSON.stringify(
+      INSERT INTO property_embeddings (id, property_id, content, embedding, updated_at)
+      VALUES (${newId}, ${propertyId}, ${text}, ${JSON.stringify(
       embedding
     )}::vector, NOW())
-        ON CONFLICT (property_id) 
-        DO UPDATE SET 
-          content = ${text},
-          embedding = ${JSON.stringify(embedding)}::vector,
-          updated_at = NOW()
-      `;
+      ON CONFLICT (property_id) 
+      DO UPDATE SET 
+        content = ${text},
+        embedding = ${JSON.stringify(embedding)}::vector,
+        updated_at = NOW()
+    `;
 
     console.log(`✅ Embedding created/updated for property ${propertyId}`);
   } catch (error) {
@@ -95,24 +100,19 @@ export async function semanticSearch(
   limit: number = 10
 ): Promise<any[]> {
   try {
-    // Generate embedding for the search query
     const queryEmbedding = await generateEmbedding(query);
 
-    // First, check if there are any embeddings
     const embeddingCount: any = await prisma.$queryRaw`
       SELECT COUNT(*) FROM "urbankey"."property_embeddings" WHERE embedding IS NOT NULL
     `;
 
-    console.log("Embedding count:", embeddingCount);
-
-    // If no embeddings, fallback to regular search
     const count = Number(Object.values(embeddingCount[0])[0]);
     if (count === 0) {
       console.log("No embeddings found, falling back to regular search");
       return fallbackSearch(query, limit);
     }
 
-    // Perform vector similarity search - using "urbankey"."vector" explicitly
+    // FIX: Using OPERATOR(urbankey.<=>) tells Postgres exactly where to find the vector comparison math!
     const results: any = await prisma.$queryRaw`
       SELECT 
         p.id,
@@ -134,14 +134,14 @@ export async function semanticSearch(
         (SELECT json_agg(json_build_object('imageUrl', pi.image_url, 'isPrimary', pi.is_primary))
          FROM "urbankey"."property_images" pi 
          WHERE pi.property_id = p.id) as images,
-        1 - (pe.embedding <=> ${JSON.stringify(
+        1 - (pe.embedding OPERATOR(urbankey.<=>) ${JSON.stringify(
           queryEmbedding
         )}::"urbankey"."vector") as similarity
       FROM "urbankey"."properties" p
       JOIN "urbankey"."property_embeddings" pe ON p.id = pe.property_id
       WHERE p.is_active = true
         AND pe.embedding IS NOT NULL
-      ORDER BY pe.embedding <=> ${JSON.stringify(
+      ORDER BY pe.embedding OPERATOR(urbankey.<=>) ${JSON.stringify(
         queryEmbedding
       )}::"urbankey"."vector"
       LIMIT ${limit}
@@ -177,10 +177,10 @@ async function fallbackSearch(query: string, limit: number): Promise<any[]> {
         p.address_line1,
         p.is_active,
         (SELECT json_agg(json_build_object('imageUrl', pi.image_url, 'isPrimary', pi.is_primary))
-         FROM urbankey.property_images pi 
+         FROM "urbankey"."property_images" pi 
          WHERE pi.property_id = p.id) as images,
         ts_rank(to_tsvector('english', p.title || ' ' || COALESCE(p.description, '')), plainto_tsquery('english', ${query})) as relevance
-      FROM urbankey.properties p
+      FROM "urbankey"."properties" p
       WHERE p.is_active = true
         AND (p.title ILIKE ${`%${query}%`} OR p.description ILIKE ${`%${query}%`} OR p.city ILIKE ${`%${query}%`})
       ORDER BY relevance DESC
