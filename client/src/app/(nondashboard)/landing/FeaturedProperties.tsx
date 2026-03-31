@@ -99,7 +99,7 @@ function FeaturedProperties() {
   };
 
   return (
-    <section className="py-20 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
+    <section className="py-20  relative overflow-hidden">
       {/* Background Pattern */}
       <div className={cn("absolute inset-0 opacity-30", styles.gridPattern)} />
       

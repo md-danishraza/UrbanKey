@@ -65,7 +65,7 @@ export function SemanticSearch({
         <div className={cn(
           "relative flex items-center rounded-xl transition-all duration-200",
           isFocused ? "ring-2 ring-purple-500 shadow-lg" : "shadow-md",
-          "bg-white"
+          "bg-white rounded-full"
         )}>
           {/* Sparkle Icon */}
           <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
@@ -108,7 +108,7 @@ export function SemanticSearch({
           <Button
             type="submit"
             disabled={isLoading || !query.trim()}
-            className="absolute right-1 top-1/2 -translate-y-1/2 h-10 rounded-lg px-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 z-10"
+            className="absolute right-2 top-1/2 -translate-y-1/2 h-10 rounded-lg px-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 z-10 rounded-full"
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />

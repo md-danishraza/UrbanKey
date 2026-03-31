@@ -63,7 +63,7 @@ const steps = [
 
 function HowItWorks() {
   return (
-    <section className="py-20 bg-white relative overflow-hidden">
+    <section className="py-20 overflow-hidden">
       {/* Decorative Elements */}
       <div className="absolute top-0 left-0 w-64 h-64 bg-blue-100 rounded-full filter blur-3xl opacity-30" />
       <div className="absolute bottom-0 right-0 w-64 h-64 bg-purple-100 rounded-full filter blur-3xl opacity-30" />

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import FeaturedProperties from "./FeaturedProperties"
 import HeroSection from "./HeroSection"
 import HowItWorks from "./HowItWorks"
+import { AntigravityBackground } from "@/components/common/AntigravityBackground";
 
 
 function Landing() {
@@ -13,6 +14,7 @@ function Landing() {
     animate={{ opacity: 1 }}
     transition={{ duration: 0.5 }}
     >
+      <AntigravityBackground/>
       <HeroSection />
       <FeaturedProperties />
       <HowItWorks />

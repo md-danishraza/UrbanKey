@@ -12,6 +12,7 @@ import { apiClient } from '@/lib/api/api-client';
 import { SearchFilters } from '@/types/property';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
+import { AntigravityBackground } from '@/components/common/AntigravityBackground';
 
 // Default filter values
 const defaultFilters: SearchFilters = {
@@ -129,9 +130,10 @@ export default function PropertiesSearchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen ">
+      <AntigravityBackground/>
       {/* Hero Search Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 py-12">
+      <div className="py-12">
         <div className="container mx-auto px-4">
           <h1 className="text-3xl md:text-4xl font-bold text-white text-center mb-4">
             Find Your Perfect Home

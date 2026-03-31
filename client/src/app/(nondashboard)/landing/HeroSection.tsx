@@ -9,6 +9,7 @@ import heroImgOne from "@/assets/landing/hero.jpg";
 import styles from "@/styles/Landing.module.css";
 import { cn } from "@/lib/utils";
 
+
 function HeroSection() {
   const trendingTags = [
     { label: "Near Metro", icon: MapPin },
@@ -18,9 +19,9 @@ function HeroSection() {
   ];
 
   return (
-    <div className=" relative w-full h-[100vh] min-h-[600px] flex items-center justify-center overflow-hidden bg-black">
+    <div className=" relative w-full h-[100vh] min-h-[600px] flex items-center justify-center overflow-hidden ">
       {/* Background Image with Parallax Effect */}
-      <motion.div 
+      {/* <motion.div 
         className="absolute inset-0 z-0"
         initial={{ scale: 1.1 }}
         animate={{ scale: 1 }}
@@ -36,7 +37,8 @@ function HeroSection() {
           sizes="100vw"
         />
         <div className={cn("absolute inset-0", styles.heroOverlay)} />
-      </motion.div>
+      </motion.div> */}
+      
 
       {/* Content Container */}
       <div className="relative z-10 container mx-auto px-4 flex flex-col items-center text-center text-white space-y-8">
