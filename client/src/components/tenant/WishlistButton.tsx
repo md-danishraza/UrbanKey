@@ -21,6 +21,7 @@ export function WishlistButton({ propertyId, className, variant = 'outline', siz
   if (!isSignedIn) {
     return null;
   }
+  
 
   return (
     <Button

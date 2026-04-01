@@ -10,6 +10,7 @@ import {
   searchProperties,
   semanticSearchProperties,
   getPropertyAnalytics,
+  getStats,
 } from "../controllers/property.controller.js";
 
 const router = Router();
@@ -18,6 +19,8 @@ const router = Router();
 router.get("/", getAllProperties);
 router.get("/search", searchProperties);
 router.get("/semantic", semanticSearchProperties);
+// landing hero section stats
+router.get("/stats", getStats);
 router.get("/:id", getPropertyById);
 
 // Protected routes

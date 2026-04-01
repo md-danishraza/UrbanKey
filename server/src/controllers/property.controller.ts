@@ -557,3 +557,23 @@ export const togglePropertyAvailability = async (
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// gets stats for landing\
+export const getStats = async (req: Request, res: Response) => {
+  try {
+    const [totalProperties, totalTenants, totalLandlords] = await Promise.all([
+      prisma.property.count({ where: { isActive: true } }),
+      prisma.user.count({ where: { role: "TENANT" } }),
+      prisma.user.count({ where: { role: "LANDLORD" } }),
+    ]);
+
+    res.json({
+      totalProperties,
+      totalTenants,
+      totalLandlords,
+    });
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
