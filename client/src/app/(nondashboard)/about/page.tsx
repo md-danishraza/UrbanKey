@@ -15,16 +15,10 @@ import {
 } from "lucide-react";
 
 export default function AboutPage() {
-  // Get hash from URL to scroll to specific section
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-4">
+    <div className="min-h-screen  pt-4">
       <div className="container mx-auto px-4 py-12">
         {/* Back Button */}
         <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-8 group">

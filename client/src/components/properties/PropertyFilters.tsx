@@ -82,11 +82,11 @@ export function PropertyFilters({ filters, setFilters }: PropertyFiltersProps) {
   };
 
   return (
-    <Card className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto">
+    <Card className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto rounded-sm backdrop-blur-xs bg-white/10 text-accent">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between">
           Filters
-          <Button variant="ghost" size="sm" onClick={handleReset} className="text-blue-600">
+          <Button variant="ghost" size="sm" onClick={handleReset} className="text-rose-600 cursor-pointer">
             Reset All
           </Button>
         </CardTitle>
@@ -294,7 +294,7 @@ export function PropertyFilters({ filters, setFilters }: PropertyFiltersProps) {
         {/* Action Buttons */}
         <div className="space-y-2 pt-2">
           <Button 
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full cursor-pointer bg-rose-600 hover:bg-rose-700"
             onClick={handleApplyFilters}
           >
             Apply Filters

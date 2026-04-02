@@ -123,7 +123,7 @@ export default function MainNavbar() {
   return (
     <header 
       className={cn(
-        "fixed top-0 left-0 right-0 z-[100] transition duration-300 border-b",
+        "fixed top-0  w-screen z-[100] transition duration-300 border-b",
         isScrolled 
           ? "bg-white/95 backdrop-blur-md shadow-sm border-gray-200 py-3 text-black" 
           : "bg-black border-transparent py-4 text-white" 

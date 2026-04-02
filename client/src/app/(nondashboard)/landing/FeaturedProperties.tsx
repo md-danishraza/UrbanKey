@@ -55,10 +55,6 @@ function FeaturedProperties() {
     }
   };
 
-  // Format price for display (fallback for PropertyCard already handles this)
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-IN').format(price);
-  };
 
   if (isLoading) {
     return (
@@ -70,7 +66,7 @@ function FeaturedProperties() {
               Featured Properties
             </Badge>
             <h2 className="text-3xl text-white md:text-4xl font-bold mb-4">Handpicked for You</h2>
-            <p className="text-gray-800 max-w-2xl mx-auto">
+            <p className="text-gray-800 max-w-2xl mx-auto ">
               Loading our most sought-after properties...
             </p>
           </div>
@@ -127,13 +123,13 @@ function FeaturedProperties() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <Badge variant="outline" className="mb-4 px-4 py-1 text-blue-600 border-blue-200 bg-blue-50">
+          <Badge variant="outline" className="mb-4 px-4 py-1 text-primary bg-blue-50">
             Featured Properties
           </Badge>
           <h2 className={cn("text-3xl md:text-4xl font-bold mb-4", styles.sectionTitle)}>
             Handpicked for You
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
+          <p className="text-purple-500 max-w-2xl mx-auto">
             Discover our most sought-after properties, verified and ready for you to move in
           </p>
         </motion.div>
@@ -165,8 +161,8 @@ function FeaturedProperties() {
           <Link href="/properties/search">
             <Button 
               size="lg" 
-              variant="outline" 
-              className="rounded-full px-8 border-2 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all group"
+             
+              className="rounded-full cursor-pointer px-8  transition-all group"
             >
               View All Properties
               <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />

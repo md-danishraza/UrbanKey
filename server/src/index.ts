@@ -19,6 +19,7 @@ import visitRoutes from "./routes/visits.routes.js";
 import wishlistRoutes from "./routes/wishlist.routes.js";
 import agreementRoutes from "./routes/agreement.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
+import chatRoutes from "./routes/chat.routes.js";
 
 dotenv.config();
 
@@ -57,6 +58,9 @@ app.use("/api/wishlist", wishlistRoutes);
 // rent agreements and payments
 app.use("/api/rent/agreements", agreementRoutes);
 app.use("/api/payments", paymentRoutes);
+
+// chat routes
+app.use("/api/chat", chatRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

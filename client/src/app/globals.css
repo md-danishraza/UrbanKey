@@ -5,6 +5,38 @@
 
 
 
+/* global fonts
+body{
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+} */
+
+
+:root {
+  /* Define your custom Fontshare fonts */
+  --font-khand: 'Khand', sans-serif;
+  --font-array: 'Array', sans-serif;
+}
+
+/* Optional: Set them as global defaults if you want */
+body {
+  font-weight: 400;
+  font-family: var(--font-khand);
+  
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-array);
+  font-weight: lighter ;
+}
+/* adding this to tli class */
+@theme {
+  --font-khand: 'Khand', sans-serif;
+  --font-array: 'Array', sans-serif;
+}
 
 
 /* shadcn comps */

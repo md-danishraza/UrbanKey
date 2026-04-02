@@ -32,7 +32,7 @@ const defaultFilters: SearchFilters = {
 export default function PropertiesSearchPage() {
   const [properties, setProperties] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+ 
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
@@ -156,7 +156,7 @@ export default function PropertiesSearchPage() {
         {/* Toolbar */}
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
           <div>
-            <p className="text-gray-600">
+            <p className="text-purple-400">
               {properties.length} properties found
               {searchQuery && ` for "${searchQuery}"`}
             </p>
@@ -177,18 +177,9 @@ export default function PropertiesSearchPage() {
               </Button>
             )}
             
-            {/* View Toggle */}
+            
             <Button
-              variant={viewMode === 'grid' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-              className="gap-1"
-            >
-              <Grid className="h-4 w-4" />
-              Grid
-            </Button>
-            <Button
-              variant={viewMode === 'map' ? 'default' : 'outline'}
+              variant="destructive"
               size="sm"
               onClick={() => setIsMapOpen(true)}
               className="gap-1"
@@ -218,7 +209,7 @@ export default function PropertiesSearchPage() {
             
             {/* Filter Toggle for Desktop */}
             <Button 
-              variant="outline" 
+              variant="destructive"
               size="sm" 
               onClick={() => setIsFiltersOpen(!isFiltersOpen)}
               className="hidden lg:flex gap-2"

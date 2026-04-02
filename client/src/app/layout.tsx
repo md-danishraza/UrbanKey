@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
-import { DM_Sans} from "next/font/google";
+import { Barlow, Barlow_Semi_Condensed } from 'next/font/google';
 import "./globals.css";
 import Providers from "./providers";
-import Navbar from "@/components/common/Navbar";
-import MainNavbar from "@/components/navigations/MainNavbar";
 
-const dmSans = DM_Sans({
-  subsets:["latin"],
-  display:"swap",
-  variable:"--font-dm-sans"
-})
+import MainNavbar from "@/components/navigations/MainNavbar";
+import { Chatbot } from "@/components/chat/Chatbot";
+
+
 
 export const metadata: Metadata = {
   title: "UrbanKey",
@@ -26,16 +23,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${dmSans.className}`}
+      <link href="https://api.fontshare.com/v2/css?f[]=khand@300,400,700&f[]=array@401,400,700&display=swap" rel="stylesheet"
+      precedence="default"
+      />
+   
+      <body 
+     
       >
         <Providers>
         <div className="h-full w-full">
-          {/* <Navbar/> */}
+         
           <MainNavbar/>
           <main className={`pt-16 md:pt-18   h-full flex w-full flex-col`}>
             {children}
           </main>
+          <Chatbot/>
         </div>
         </Providers>
       </body>

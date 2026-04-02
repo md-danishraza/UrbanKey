@@ -2,12 +2,10 @@ class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    // Make sure this points to your Node.js backend port (usually 5000 or 8000)
     this.baseUrl =
-      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000/api";
   }
 
-  // Accepts the token passed from the React hook
   private getHeaders(token?: string | null) {
     return {
       "Content-Type": "application/json",
@@ -15,13 +13,44 @@ class ApiClient {
     };
   }
 
+  // Helper to extract error message from response
+  private async handleResponse<T>(response: Response): Promise<T> {
+    if (!response.ok) {
+      // Try to get error message from response body
+      let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+
+      try {
+        const errorBody = await response.json();
+        // Handle different error response formats
+        if (errorBody.error) {
+          errorMessage = errorBody.error;
+        } else if (errorBody.message) {
+          errorMessage = errorBody.message;
+        } else if (typeof errorBody === "string") {
+          errorMessage = errorBody;
+        }
+      } catch (e) {
+        // If response is not JSON, use status text
+        errorMessage = `API Error: ${response.status} ${response.statusText}`;
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    // For 204 No Content responses
+    if (response.status === 204) {
+      return {} as T;
+    }
+
+    return response.json();
+  }
+
   async get<T>(path: string, token?: string | null): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
+      method: "GET",
       headers: this.getHeaders(token),
     });
-
-    if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
-    return response.json();
+    return this.handleResponse<T>(response);
   }
 
   async post<T>(path: string, data: any, token?: string | null): Promise<T> {
@@ -30,9 +59,7 @@ class ApiClient {
       headers: this.getHeaders(token),
       body: JSON.stringify(data),
     });
-
-    if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
-    return response.json();
+    return this.handleResponse<T>(response);
   }
 
   async put<T>(path: string, data: any, token?: string | null): Promise<T> {
@@ -41,19 +68,16 @@ class ApiClient {
       headers: this.getHeaders(token),
       body: JSON.stringify(data),
     });
-
-    if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
-    return response.json();
+    return this.handleResponse<T>(response);
   }
+
   async patch<T>(path: string, data: any, token?: string | null): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: "PATCH",
       headers: this.getHeaders(token),
       body: JSON.stringify(data),
     });
-
-    if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
-    return response.json();
+    return this.handleResponse<T>(response);
   }
 
   async delete<T>(path: string, token?: string | null): Promise<T> {
@@ -61,9 +85,7 @@ class ApiClient {
       method: "DELETE",
       headers: this.getHeaders(token),
     });
-
-    if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
-    return response.json();
+    return this.handleResponse<T>(response);
   }
 }
 

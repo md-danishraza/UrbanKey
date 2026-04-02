@@ -37,6 +37,7 @@ model User {
   // onboarding
   onboardingCompleted Boolean             @default(false) @map("onboarding_completed")
   onboardingProgress  OnboardingProgress?
+  ChatHistory         ChatHistory[]
 
   @@map("users")
   @@schema("urbankey")
@@ -329,6 +330,21 @@ model PropertyEmbedding {
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@map("property_embeddings")
+  @@schema("urbankey")
+}
+
+// chatbot
+model ChatHistory {
+  id                  String   @id @default(cuid())
+  userId              String   @map("user_id")
+  question            String   @db.Text
+  answer              String   @db.Text
+  relevantPropertyIds Json?    @map("relevant_property_ids")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("chat_history")
   @@schema("urbankey")
 }
 

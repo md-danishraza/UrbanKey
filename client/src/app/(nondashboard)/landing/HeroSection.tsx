@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { apiClient } from '@/lib/api/api-client';
 import { toast } from 'sonner';
 import { AntigravityBackground } from '@/components/common/AntigravityBackground';
+import { TextTypeHeader } from '@/components/common/TextTypeHeader';
 
 // Define stats interface
 interface Stats {
@@ -119,46 +120,24 @@ function HeroSection() {
     <div className="relative w-full h-[100vh] min-h-[600px] flex items-center justify-center overflow-hidden ">
       {/* Background Image with Overlay */}
       <AntigravityBackground/>
-      {/* <div className="absolute inset-0 z-0">
-        <Image
-          src={heroImgOne}
-          alt="Modern Apartment Interior"
-          fill
-          className="object-cover opacity-50"
-          priority
-          placeholder="blur"
-          sizes="100vw"
-        />
-        <div className={cn("absolute inset-0 bg-black/60", styles.heroOverlay)} />
-      </div> */}
+    
+      
 
       {/* Content Container */}
       <div className="relative z-10 container mx-auto px-4 flex flex-col items-center text-center text-white space-y-8">
         
         {/* Main Heading & Subtext */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="max-w-4xl"
-        >
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 drop-shadow-lg">
-            Find Your <span className="text-blue-400 relative">
-              Sanctuary
-              <motion.span 
-                className="absolute -bottom-2 left-0 w-full h-1 bg-blue-400/50 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: "100%" }}
-                transition={{ delay: 1, duration: 0.8 }}
-              />
-            </span> <br />
-            in the Heart of the City
-          </h1>
-          <p className="text-lg md:text-xl text-gray-200 max-w-2xl mx-auto font-light leading-relaxed drop-shadow-md">
-            Seamlessly connect with verified landlords. No brokerage. <br className="hidden md:block"/>
-            AI-powered search tailored for the modern Indian tenant.
-          </p>
-        </motion.div>
+        
+        <TextTypeHeader 
+            words={[
+              'Find your dream home with zero broker fees.',
+              'Search smarter with AI-powered matching.',
+              'Connect directly with verified landlords.',
+              'Sign rental agreements instantly online.'
+            ]}
+            subheading="UrbanKey makes renting simple, transparent, and completely broker-free."
+            headingSize="text-3xl md:text-4xl lg:text-6xl"
+          />
 
         {/* Enhanced Search Bar */}
         <motion.div
@@ -169,7 +148,7 @@ function HeroSection() {
         >
           <form onSubmit={handleSearch}>
             <div className={cn(
-              "p-2 rounded-4xl md:rounded-full flex flex-col md:flex-row items-center gap-2",
+              "p-2 rounded-4xl md:rounded-full flex flex-col md:flex-row items-center gap-2 ",
               styles.glassSearch
             )}>
               
@@ -182,7 +161,7 @@ function HeroSection() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className={cn(
-                    "border-none shadow-none focus-visible:ring-0 h-12 text-base w-full",
+                    "border-none shadow-none focus-visible:ring-0 h-12 text-base w-full " ,
                     styles.glassSearchInput
                   )}
                 />
@@ -245,7 +224,7 @@ function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.5 }}
-            className="mt-12 flex justify-center gap-8 text-sm"
+            className="mt-12 flex justify-center gap-8 text-sm text-purple-500"
           >
             <div className="text-center">
               <div className="text-2xl font-bold">
@@ -271,7 +250,7 @@ function HeroSection() {
 
       {/* Scroll Indicator */}
       <motion.div 
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+        className="absolute bottom-20 left-1/2 transform -translate-x-1/2"
         animate={{ y: [0, 10, 0] }}
         transition={{ repeat: Infinity, duration: 1.5 }}
       >

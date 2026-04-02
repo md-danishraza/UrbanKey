@@ -561,16 +561,19 @@ export const togglePropertyAvailability = async (
 // gets stats for landing\
 export const getStats = async (req: Request, res: Response) => {
   try {
-    const [totalProperties, totalTenants, totalLandlords] = await Promise.all([
-      prisma.property.count({ where: { isActive: true } }),
-      prisma.user.count({ where: { role: "TENANT" } }),
-      prisma.user.count({ where: { role: "LANDLORD" } }),
-    ]);
+    const [totalProperties, totalTenants, totalLandlords, totalAgreements] =
+      await Promise.all([
+        prisma.property.count({ where: { isActive: true } }),
+        prisma.user.count({ where: { role: "TENANT" } }),
+        prisma.user.count({ where: { role: "LANDLORD" } }),
+        prisma.rentalAgreement.count({ where: { status: "ACTIVE" } }),
+      ]);
 
     res.json({
       totalProperties,
       totalTenants,
       totalLandlords,
+      totalAgreements,
     });
   } catch (error) {
     console.error("Error fetching stats:", error);
