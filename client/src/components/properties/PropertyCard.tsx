@@ -25,9 +25,10 @@ interface PropertyCardProps {
   };
   showActions?: boolean;
   className?: string;
+  showWishlist?: boolean;
 }
 
-export function PropertyCard({ property, showActions = true, className }: PropertyCardProps) {
+export function PropertyCard({ property, showActions = true, className,showWishlist=false }: PropertyCardProps) {
   const getPrimaryImage = () => {
     const primary = property.images?.find(img => img.isPrimary);
     return primary?.imageUrl || property.images?.[0]?.imageUrl;
@@ -52,7 +53,7 @@ export function PropertyCard({ property, showActions = true, className }: Proper
         <Badge className="bg-rose-500 hover:bg-rose-600 text-white shadow-lg pointer-events-auto border-none">
           {property.bhk}
         </Badge>
-        {showActions && (
+        {(showActions || showWishlist) && (
           <div className="pointer-events-auto">
             <WishlistButton propertyId={property.id} variant="ghost" size="icon" className="rounded-full shadow-lg bg-black/50 cursor-pointer text-white border-none backdrop-blur-sm" />
           </div>

@@ -55,7 +55,7 @@ export const getOnboardingProgress = async (
       where: { userId },
     });
 
-    console.log(progress);
+    // console.log(progress);
 
     // Always return a consistent response structure
     res.json({

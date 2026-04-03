@@ -3,10 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+
 import { motion } from "framer-motion";
-import { Search, MapPin, TrendingUp, Zap, Shield, Users, Loader2 } from "lucide-react";
+import {  MapPin, TrendingUp, Zap, Shield, Users } from "lucide-react";
 
 import styles from "@/styles/Landing.module.css";
 import { cn } from "@/lib/utils";
@@ -14,6 +13,7 @@ import { apiClient } from '@/lib/api/api-client';
 import { toast } from 'sonner';
 import { AntigravityBackground } from '@/components/common/AntigravityBackground';
 import { TextTypeHeader } from '@/components/common/TextTypeHeader';
+import { SearchBar } from '@/components/common/SearchBar';
 
 // Define stats interface
 interface Stats {
@@ -23,7 +23,7 @@ interface Stats {
 }
 function HeroSection() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
+ 
   const [isSearching, setIsSearching] = useState(false);
   const [stats, setStats] = useState({
     totalProperties: 0,
@@ -61,31 +61,30 @@ function HeroSection() {
     }
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) return;
 
     setIsSearching(true);
     try {
-      // Use semantic search if available, otherwise regular search
       const response: any = await apiClient.get(
-        `/api/properties/semantic?q=${encodeURIComponent(searchQuery)}`
+        // Use semantic search if available, otherwise regular search
+        `/api/properties/semantic?q=${encodeURIComponent(query)}`
       );
-      
-      // Store search results in sessionStorage to persist across pages
+       // Store search results in sessionStorage to persist across pages
       sessionStorage.setItem('searchResults', JSON.stringify(response.results || []));
-      sessionStorage.setItem('searchQuery', searchQuery);
-      
-      // Navigate to search page
-      router.push(`/properties/search?q=${encodeURIComponent(searchQuery)}`);
+      sessionStorage.setItem('searchQuery', query);
+        // Navigate to search page
+      router.push(`/properties/search?q=${encodeURIComponent(query)}`);
     } catch (error) {
+            // Fallback to regular search
       console.error('Search failed:', error);
-      // Fallback to regular search
-      router.push(`/properties/search?q=${encodeURIComponent(searchQuery)}`);
+      router.push(`/properties/search?q=${encodeURIComponent(query)}`);
     } finally {
       setIsSearching(false);
     }
   };
+
+  
 
   const handleTrendingTagClick = (tag: string) => {
     let searchTerm = '';
@@ -105,7 +104,7 @@ function HeroSection() {
       default:
         searchTerm = tag;
     }
-    setSearchQuery(searchTerm);
+   
     router.push(`/properties/search?q=${encodeURIComponent(searchTerm)}`);
   };
 
@@ -146,52 +145,14 @@ function HeroSection() {
           transition={{ delay: 0.3, duration: 0.6 }}
           className="w-full max-w-3xl px-2"
         >
-          <form onSubmit={handleSearch}>
-            <div className={cn(
-              "p-2 rounded-4xl md:rounded-full flex flex-col md:flex-row items-center gap-2 ",
-              styles.glassSearch
-            )}>
-              
-              {/* Location Input */}
-              <div className="flex-1 flex items-center w-full px-4 md:border-r border-white/20 mb-2 md:mb-0">
-                <MapPin className="w-5 h-5 text-blue-300 mr-3 shrink-0" />
-                <Input 
-                  type="text" 
-                  placeholder="Search by city, neighborhood, or landmark..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className={cn(
-                    "border-none shadow-none focus-visible:ring-0 h-12 text-base w-full " ,
-                    styles.glassSearchInput
-                  )}
-                />
-              </div>
-
-              {/* Search Button with Hover Effect */}
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-full md:w-auto"
-              >
-                <Button 
-                  type="submit"
-                  size="lg" 
-                  disabled={isSearching}
-                  className="w-full md:w-auto rounded-full px-8 h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all duration-300 shadow-lg relative overflow-hidden group"
-                >
-                  <span className="relative z-10 flex items-center">
-                    {isSearching ? (
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    ) : (
-                      <Search className="w-5 h-5 mr-2" />
-                    )}
-                    {isSearching ? 'Searching...' : 'Search'}
-                  </span>
-                  <span className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </Button>
-              </motion.div>
-            </div>
-          </form>
+          <SearchBar
+            onSearch={handleSearch}
+            isLoading={isSearching}
+            placeholder="Search by city, neighborhood, or landmark..."
+            variant="glass"
+            size="lg"
+            showSparkle={true}
+          />
           
           {/* Trending Tags with Icons */}
           <div className="mt-8 flex flex-wrap justify-center gap-3 text-sm font-medium">

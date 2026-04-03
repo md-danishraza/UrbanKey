@@ -1,5 +1,5 @@
 import Image from "next/image";
-import logo from "@/assets/LogoHighRes.png";
+import logo from "@/assets/logo-uk-final.png";
 
 interface LogoProps {
   width?: number;

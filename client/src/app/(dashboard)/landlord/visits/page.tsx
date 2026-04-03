@@ -57,6 +57,7 @@ export default function LandlordVisitsPage() {
     setUpdating(visitId);
     try {
       const token = await getToken();
+      if(!token) throw new Error("Unautharized")
       await updateVisitStatus(token, visitId, newStatus);
       toast.success('Visit status updated');
       loadVisits();
@@ -79,7 +80,7 @@ export default function LandlordVisitsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen  bg-gradient-to-b from-rose-50 to-white flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );

@@ -9,6 +9,7 @@ import { Heart, Calendar, MessageCircle, Building2, Shield, FileText, User, MapP
 import PillNav from './PillNav';
 import CardNav from './CardNav';
 import { cn } from '@/lib/utils';
+import Logo from '../Logo';
 
 type UserRole = 'tenant' | 'landlord' | 'admin';
 
@@ -132,8 +133,8 @@ export default function MainNavbar() {
       <div className="container mx-auto px-4 md:px-8 flex items-center justify-between">
         
         {/* LEFT: Logo */}
-        <Link href="/" className="text-2xl font-bold tracking-tight text-rose-500 hover:opacity-90 transition-opacity">
-          UrbanKey
+        <Link href="/" >
+          <Logo/>
         </Link>
 
         {/* CENTER: Desktop PillNav */}

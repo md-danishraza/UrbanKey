@@ -6,7 +6,6 @@ import {
   getUserById,
   updateUser,
   deleteUser,
-  getUserProperties,
   syncUser,
   getLandlordProperties,
 } from "../controllers/user.controller.js";
@@ -24,7 +23,6 @@ router.delete("/me", deleteUser);
 
 // User specific routes
 router.get("/:userId", getUserById);
-router.get("/:userId/properties", getUserProperties);
 
 router.get("/landlord/me", requireAuth, getLandlordProperties);
 

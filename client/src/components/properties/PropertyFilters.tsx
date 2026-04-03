@@ -91,7 +91,7 @@ export function PropertyFilters({ filters, setFilters }: PropertyFiltersProps) {
           </Button>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 transition-all ">
         {/* Location Section */}
         <Collapsible open={sections.location} onOpenChange={() => toggleSection('location')}>
           <CollapsibleTrigger className="flex items-center justify-between w-full py-2">

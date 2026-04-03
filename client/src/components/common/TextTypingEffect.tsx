@@ -75,7 +75,7 @@ export function TextTypingEffect({
         </span>
         
         {/* Blinking cursor */}
-        <span className="absolute -right-3 top-0 text-rose-500 animate-pulse">|</span>
+        <span className="absolute -right-3 top-10 lg:top-20 text-rose-500 animate-pulse inline-block transform scale-y-200">|</span>
       </div>
     </div>
   );

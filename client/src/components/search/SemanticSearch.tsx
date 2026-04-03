@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Search, Loader2, Sparkles, X, TrendingUp } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import {  Sparkles, TrendingUp } from 'lucide-react';
+
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { SearchBar } from '../common/SearchBar';
 
 interface SemanticSearchProps {
   onSearch: (query: string) => Promise<void>;
@@ -32,16 +32,9 @@ export function SemanticSearch({
   suggestions = defaultSuggestions 
 }: SemanticSearchProps) {
   const [query, setQuery] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
+  
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim() || isLoading) return;
-    await onSearch(query);
-    setShowSuggestions(false);
-  };
 
   const handleSuggestionClick = (suggestion: string) => {
     setQuery(suggestion);
@@ -54,76 +47,20 @@ export function SemanticSearch({
     }, 100);
   };
 
-  const handleClear = () => {
-    setQuery('');
-    inputRef.current?.focus();
-  };
 
   return (
     <div className={cn("w-full", className)}>
-      <form onSubmit={handleSubmit} className="relative">
-        <div className={cn(
-          "relative flex items-center rounded-xl transition-all duration-200",
-isFocused ? "ring-2 ring-purple-500 shadow-lg" : "shadow-md",
-"rounded-full backdrop-blur-xs bg-white/10 "
-
-        )}>
-          {/* Sparkle Icon */}
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-            <Sparkles className="h-5 w-5 text-purple-500 animate-pulse" />
-          </div>
-
-          {/* Input */}
-          <Input
-            ref={inputRef}
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setShowSuggestions(e.target.value.length > 0);
-            }}
-            onFocus={() => {
-              setIsFocused(true);
-              setShowSuggestions(query.length > 0);
-            }}
-            onBlur={() => {
-              setIsFocused(false);
-              setTimeout(() => setShowSuggestions(false), 200);
-            }}
-            placeholder={placeholder || "Try: 'spacious 2BHK near metro with power backup'"}
-            className="pl-12 pr-28 h-14  border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-white"
-          />
-
-          {/* Clear Button - positioned left of search button */}
-          {query && !isLoading && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="absolute right-28 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors z-10"
-              aria-label="Clear search"
-            >
-              <X className="h-8 w-8" />
-            </button>
-          )}
-
-          {/* Search Button */}
-          <Button
-            type="submit"
-            disabled={isLoading || !query.trim()}
-            className="absolute right-2 top-1/2 -translate-y-1/2 h-10 px-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 z-10 rounded-full"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <Search className="h-4 w-4 mr-1" />
-                Search
-              </>
-            )}
-          </Button>
-        </div>
-
-        {/* Suggestions Dropdown */}
-        {showSuggestions && !isLoading && query && (
+       <SearchBar
+        onSearch={onSearch}
+        isLoading={isLoading}
+        placeholder={placeholder || "Try: 'spacious 2BHK near metro with power backup'"}
+        variant="glass"
+        size="lg"
+        showSparkle={true}
+      />
+      
+       {/* Suggestions Dropdown */}
+       {showSuggestions && !isLoading && query && (
           <div className="absolute z-20 mt-2 w-full bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-2">
               <div className="flex items-center gap-2 px-3 py-1 text-xs text-gray-500">
@@ -142,9 +79,8 @@ isFocused ? "ring-2 ring-purple-500 shadow-lg" : "shadow-md",
                 ))}
               </div>
             </div>
-          </div>
-        )}
-      </form>
+        </div>
+       )}
 
       {/* AI Badge */}
       <div className="flex items-center justify-between mt-3">

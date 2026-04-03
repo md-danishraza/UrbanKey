@@ -102,8 +102,11 @@ export default function TenantMyHomePage() {
   const monthsLeft = Math.ceil((new Date(agreement.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24 * 30));
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen  bg-gradient-to-b from-rose-50 to-white py-8 px-4">
       <div className="max-w-5xl mx-auto">
+      
+
+
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold">My Home</h1>
@@ -111,7 +114,7 @@ export default function TenantMyHomePage() {
         </div>
 
         {/* Property Card */}
-        <Card className="mb-6 overflow-hidden">
+        <Card className="mb-6 p-0 overflow-hidden">
           <div className="md:flex">
             <div className="md:w-1/3 h-48 md:h-auto">
               {agreement.property.images[0] ? (

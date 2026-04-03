@@ -173,47 +173,6 @@ export const syncUser = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getUserProperties = async (req: AuthRequest, res: Response) => {
-  try {
-    const requestingUserId = req.auth?.userId;
-    if (!requestingUserId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    // Validate and extract userId from params
-    let targetUserId: string;
-    try {
-      targetUserId = validateUserId(req.params.userId);
-    } catch (error) {
-      return res.status(400).json({ error: "Invalid user ID format" });
-    }
-
-    // Only allow users to view their own properties unless admin
-    if (targetUserId !== requestingUserId) {
-      const requestingUser = await prisma.user.findUnique({
-        where: { id: requestingUserId },
-      });
-
-      if (requestingUser?.role !== "ADMIN") {
-        return res.status(403).json({ error: "Forbidden" });
-      }
-    }
-
-    const properties = await prisma.property.findMany({
-      where: { landlordId: targetUserId },
-      include: {
-        images: true,
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    res.json(properties);
-  } catch (error) {
-    console.error("Error fetching user properties:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-
 export const getLandlordProperties = async (
   req: AuthRequest,
   res: Response

@@ -5,6 +5,8 @@ import Providers from "./providers";
 
 import MainNavbar from "@/components/navigations/MainNavbar";
 import { Chatbot } from "@/components/chat/Chatbot";
+import Footer from "@/components/common/Footer";
+;
 
 
 
@@ -31,12 +33,13 @@ export default function RootLayout({
      
       >
         <Providers>
-        <div className="h-full w-full">
+        <div className=" w-full h-full min-h-screen">
          
           <MainNavbar/>
-          <main className={`pt-16 md:pt-18   h-full flex w-full flex-col`}>
+          <main className={`pt-16 md:pt-18 min-h-screen   h-full flex w-full flex-col`}>
             {children}
           </main>
+          <Footer/>
           <Chatbot/>
         </div>
         </Providers>

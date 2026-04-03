@@ -10,11 +10,14 @@ export interface WishlistItem {
     bhk: string;
     city: string;
     images: { imageUrl: string; isPrimary: boolean }[];
+    nearestMetroStation?: string;
+    distanceToMetroKm?: number;
+    isBroker?: boolean;
+    brokerageFee?: number;
     landlord: { fullName: string };
   };
   createdAt: string;
 }
-
 // Get wishlist (tenant)
 export const getWishlist = async (token: string) => {
   return apiClient.get("/api/wishlist", token);

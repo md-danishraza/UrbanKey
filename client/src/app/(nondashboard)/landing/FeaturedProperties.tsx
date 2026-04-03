@@ -145,7 +145,12 @@ function FeaturedProperties() {
               transition={{ delay: index * 0.1, duration: 0.5 }}
               className="h-full"
             >
-              <PropertyCard property={property} showActions={true} />
+              <PropertyCard 
+              property={property} 
+              showActions={true}  
+              showWishlist={false}  
+              // Disable wishlist on landing 
+              />
             </motion.div>
           ))}
         </div>

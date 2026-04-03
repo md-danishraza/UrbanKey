@@ -116,7 +116,7 @@ export default function PropertiesListPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="min-h-screen  bg-gradient-to-b from-rose-50 to-white py-8 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center mb-6">
             <div>

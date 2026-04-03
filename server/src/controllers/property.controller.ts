@@ -97,7 +97,7 @@ export const getAllProperties = async (req: Request, res: Response) => {
     if (isDirectOwner === "true") where.isBroker = false;
     if (nearbyMetro === "true") where.distanceToMetroKm = { not: null };
 
-    console.log("Where clause:", JSON.stringify(where, null, 2));
+    // console.log("Where clause:", JSON.stringify(where, null, 2));
 
     const [properties, total] = await Promise.all([
       prisma.property.findMany({

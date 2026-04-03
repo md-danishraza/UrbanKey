@@ -74,7 +74,7 @@ export default function LandlordLeadsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen  bg-gradient-to-b from-rose-50 to-white py-8 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold">Leads Management</h1>
