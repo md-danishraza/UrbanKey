@@ -8,18 +8,20 @@ import {
   ChevronLeft, 
   Users, 
   Search, 
-  Filter, 
+ 
   MoreVertical,
   UserCheck,
   UserX,
   Shield,
-  Mail,
+ 
   Phone,
-  Calendar,
-  Loader2
+  
+  Loader2,
+ 
 } from 'lucide-react';
+import { toast } from 'sonner';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,70 +40,155 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-interface User {
-  id: string;
-  email: string;
-  fullName: string;
-  phone?: string;
-  role: 'TENANT' | 'LANDLORD' | 'ADMIN';
-  isVerified: boolean;
-  createdAt: string;
-}
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  getAdminUsers,
+  getAdminUserStats,
+  updateUserRole,
+  verifyUser,
+  suspendUser,
+  AdminUser,
+  AdminUserStats,
+} from '@/lib/api/admin';
 
 export default function UserManagementPage() {
   const { getToken } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [stats, setStats] = useState<AdminUserStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
+  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  const [newRole, setNewRole] = useState('');
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   useEffect(() => {
     loadUsers();
-  }, []);
+    loadStats();
+  }, [filterRole, currentPage]);
 
   const loadUsers = async () => {
     setIsLoading(true);
     try {
       const token = await getToken();
-      // This would be your actual API call
-      // const response = await getUsers(token);
-      // setUsers(response.users);
-      
-      // Mock data for now
-      setUsers([
-        {
-          id: '1',
-          email: 'rahul@example.com',
-          fullName: 'Rahul Sharma',
-          phone: '+919876543210',
-          role: 'TENANT',
-          isVerified: true,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          email: 'amit@example.com',
-          fullName: 'Amit Kumar',
-          phone: '+919876543211',
-          role: 'LANDLORD',
-          isVerified: false,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
+      if (!token) return;
+
+      const filters: any = { page: currentPage, limit: 10 };
+      if (filterRole !== 'ALL') filters.role = filterRole;
+      if (searchQuery) filters.search = searchQuery;
+
+      const response = await getAdminUsers(token, filters);
+      setUsers(response.data);
+      setTotalPages(response.totalPages);
     } catch (error) {
       console.error('Failed to load users:', error);
+      toast.error('Failed to load users');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = filterRole === 'ALL' || user.role === filterRole;
-    return matchesSearch && matchesRole;
-  });
+  const loadStats = async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const statsData = await getAdminUserStats(token);
+      setStats(statsData);
+    } catch (error) {
+      console.error('Failed to load stats:', error);
+    }
+  };
+
+  const handleRoleUpdate = async () => {
+    if (!selectedUser || !newRole) return;
+    
+    setIsActionLoading(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      
+      await updateUserRole(token, selectedUser.id, newRole);
+      toast.success(`User role updated to ${newRole}`);
+      setRoleDialogOpen(false);
+      setSelectedUser(null);
+      setNewRole('');
+      loadUsers();
+      loadStats();
+    } catch (error) {
+      console.error('Failed to update role:', error);
+      toast.error('Failed to update user role');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleVerifyUser = async () => {
+    if (!selectedUser) return;
+    
+    setIsActionLoading(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      
+      await verifyUser(token, selectedUser.id);
+      toast.success('User verified successfully');
+      setVerifyDialogOpen(false);
+      setSelectedUser(null);
+      loadUsers();
+      loadStats();
+    } catch (error) {
+      console.error('Failed to verify user:', error);
+      toast.error('Failed to verify user');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleSuspendUser = async () => {
+    if (!selectedUser) return;
+    
+    setIsActionLoading(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      
+      await suspendUser(token, selectedUser.id);
+      toast.success('User suspended successfully');
+      setSuspendDialogOpen(false);
+      setSelectedUser(null);
+      loadUsers();
+      loadStats();
+    } catch (error) {
+      console.error('Failed to suspend user:', error);
+      toast.error('Failed to suspend user');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(1);
+    loadUsers();
+  };
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-IN', {
@@ -151,7 +238,7 @@ export default function UserManagementPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Total Users</p>
-                  <p className="text-2xl font-bold">{users.length}</p>
+                  <p className="text-2xl font-bold">{stats?.totalUsers || 0}</p>
                 </div>
                 <Users className="h-8 w-8 text-blue-500" />
               </div>
@@ -162,9 +249,7 @@ export default function UserManagementPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Verified</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {users.filter(u => u.isVerified).length}
-                  </p>
+                  <p className="text-2xl font-bold text-green-600">{stats?.verified || 0}</p>
                 </div>
                 <UserCheck className="h-8 w-8 text-green-500" />
               </div>
@@ -175,9 +260,7 @@ export default function UserManagementPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Unverified</p>
-                  <p className="text-2xl font-bold text-yellow-600">
-                    {users.filter(u => !u.isVerified).length}
-                  </p>
+                  <p className="text-2xl font-bold text-yellow-600">{stats?.unverified || 0}</p>
                 </div>
                 <UserX className="h-8 w-8 text-yellow-500" />
               </div>
@@ -188,9 +271,7 @@ export default function UserManagementPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Landlords</p>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {users.filter(u => u.role === 'LANDLORD').length}
-                  </p>
+                  <p className="text-2xl font-bold text-blue-600">{stats?.landlords || 0}</p>
                 </div>
                 <Shield className="h-8 w-8 text-blue-500" />
               </div>
@@ -206,9 +287,14 @@ export default function UserManagementPage() {
               placeholder="Search by name or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               className="pl-10"
             />
           </div>
+          <Button onClick={handleSearch} variant="secondary" className="gap-2">
+            <Search className="h-4 w-4" />
+            Search
+          </Button>
           <Tabs value={filterRole} onValueChange={setFilterRole} className="w-full md:w-auto">
             <TabsList>
               <TabsTrigger value="ALL">All</TabsTrigger>
@@ -226,7 +312,7 @@ export default function UserManagementPage() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
               </div>
-            ) : filteredUsers.length === 0 ? (
+            ) : users.length === 0 ? (
               <div className="text-center py-12">
                 <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500">No users found</p>
@@ -245,7 +331,7 @@ export default function UserManagementPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredUsers.map((user) => (
+                    {users.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell>
                           <div>
@@ -263,7 +349,7 @@ export default function UserManagementPage() {
                         </TableCell>
                         <TableCell>{getRoleBadge(user.role)}</TableCell>
                         <TableCell>
-                          <Badge variant={user.isVerified ? "default" : "secondary"} className={user.isVerified ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}>
+                          <Badge className={user.isVerified ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}>
                             {user.isVerified ? 'Verified' : 'Pending'}
                           </Badge>
                         </TableCell>
@@ -278,14 +364,31 @@ export default function UserManagementPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>View Details</DropdownMenuItem>
-                              <DropdownMenuItem>Edit Role</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedUser(user);
+                                setNewRole(user.role);
+                                setRoleDialogOpen(true);
+                              }}>
+                                Change Role
+                              </DropdownMenuItem>
                               {!user.isVerified && (
-                                <DropdownMenuItem className="text-green-600">
+                                <DropdownMenuItem 
+                                  className="text-green-600"
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setVerifyDialogOpen(true);
+                                  }}
+                                >
                                   Verify User
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem className="text-red-600">
+                              <DropdownMenuItem 
+                                className="text-red-600"
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setSuspendDialogOpen(true);
+                                }}
+                              >
                                 Suspend User
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -297,9 +400,100 @@ export default function UserManagementPage() {
                 </Table>
               </div>
             )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-4 border-t">
+                <p className="text-sm text-gray-500">
+                  Page {currentPage} of {totalPages}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1 || isLoading}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages || isLoading}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Change Role Dialog */}
+      <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change User Role</DialogTitle>
+            <DialogDescription>
+              Update role for {selectedUser?.fullName}
+            </DialogDescription>
+          </DialogHeader>
+          <Select value={newRole} onValueChange={setNewRole}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="TENANT">Tenant</SelectItem>
+              <SelectItem value="LANDLORD">Landlord</SelectItem>
+              <SelectItem value="ADMIN">Admin</SelectItem>
+            </SelectContent>
+          </Select>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleRoleUpdate} disabled={isActionLoading}>
+              {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Update'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Verify User Dialog */}
+      <Dialog open={verifyDialogOpen} onOpenChange={setVerifyDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verify User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to verify {selectedUser?.fullName}?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVerifyDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleVerifyUser} disabled={isActionLoading}>
+              {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verify'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Suspend User Dialog */}
+      <Dialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Suspend User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to suspend {selectedUser?.fullName}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSuspendDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleSuspendUser} disabled={isActionLoading}>
+              {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Suspend'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

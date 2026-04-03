@@ -9,14 +9,14 @@ import {
   getAgreementPDF,
   getTenantCurrentRental,
 } from "../controllers/agreement.controller.js";
-
+import { requireRole } from "../middleware/auth.middleware.js";
 const router = Router();
 
 // All routes require authentication
 router.use(requireAuth);
 
 // Agreement CRUD
-router.post("/", createAgreement);
+router.post("/", requireRole(["LANDLORD", "ADMIN"]), createAgreement);
 router.get("/landlord", getLandlordAgreements);
 router.get("/tenant", getTenantAgreements);
 router.get("/tenant/current", getTenantCurrentRental);

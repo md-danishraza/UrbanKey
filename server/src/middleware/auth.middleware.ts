@@ -1,20 +1,15 @@
 import type { Request, Response, NextFunction } from "express";
 import { verifyToken } from "@clerk/backend";
+import prisma from "../config/database.js";
 
 export interface AuthRequest extends Request {
   auth?: {
     userId: string;
     sessionId: string;
     claims?: any;
+    userRole?: string;
   };
 }
-
-// Test users for development
-const TEST_USERS = {
-  test_user_1: { id: "test_user_1", role: "TENANT" },
-  test_user_2: { id: "test_user_2", role: "LANDLORD" },
-  test_user_3: { id: "test_user_3", role: "ADMIN" },
-};
 
 export const requireAuth = async (
   req: AuthRequest,
@@ -29,35 +24,45 @@ export const requireAuth = async (
 
     const token = header.substring(7);
 
-    // DEVELOPMENT MODE: Check for test tokens
-    if (process.env.NODE_ENV === "development") {
-      // Check if token is a test token (starts with 'test_')
-      if (token.startsWith("test_")) {
-        const userId = token; // token itself is the user ID in test mode
-
-        if (TEST_USERS[userId as keyof typeof TEST_USERS]) {
-          req.auth = {
-            userId: userId,
-            sessionId: `test_session_${Date.now()}`,
-            claims: {
-              sub: userId,
-              role: TEST_USERS[userId as keyof typeof TEST_USERS].role,
-            },
-          };
-          return next();
-        }
-      }
-    }
-
-    // PRODUCTION MODE: Verify with Clerk
+    // Verify with Clerk
     const payload = await verifyToken(token, {
       secretKey: process.env.CLERK_SECRET_KEY!,
     });
+
+    const userId = payload.sub;
+    let userRole = "TENANT";
+
+    // Get user role from Clerk public metadata first
+    const metadata = (payload.publicMetadata as Record<string, any>) || {};
+    const clerkRole = metadata.role as string;
+
+    // Check if user is admin via environment variable
+    const adminUserId = process.env.ADMIN_USER_ID;
+    const isAdminByEnv = adminUserId === userId;
+
+    if (clerkRole) {
+      // Convert to uppercase for consistency
+      userRole = clerkRole.toUpperCase();
+    } else if (isAdminByEnv) {
+      userRole = "ADMIN";
+    } else {
+      // Fallback to database
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true },
+        });
+        userRole = user?.role || "TENANT";
+      } catch (error) {
+        console.error("Error fetching user role from database:", error);
+      }
+    }
 
     req.auth = {
       userId: payload.sub,
       sessionId: payload.sid,
       claims: payload,
+      userRole,
     };
 
     next();
@@ -66,3 +71,23 @@ export const requireAuth = async (
     return res.status(401).json({ error: "Unauthorized" });
   }
 };
+
+// Role-based middleware helpers
+export const requireRole = (roles: string[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    const userRole = req.auth?.userRole;
+    // console.log(userRole);
+
+    if (!userRole || !roles.includes(userRole)) {
+      return res
+        .status(403)
+        .json({ error: "Forbidden: Insufficient permissions" });
+    }
+
+    next();
+  };
+};
+
+export const requireAdmin = requireRole(["ADMIN"]);
+export const requireLandlord = requireRole(["LANDLORD", "ADMIN"]);
+export const requireTenant = requireRole(["TENANT", "ADMIN"]);

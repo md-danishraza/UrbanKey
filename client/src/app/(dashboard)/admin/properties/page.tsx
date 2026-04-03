@@ -11,14 +11,18 @@ import {
   Eye, 
   CheckCircle, 
   XCircle,
-  AlertTriangle,
+  
   Loader2,
   MapPin,
-  Users,
-  Calendar
+  
+  Power,
+  PowerOff,
+  Trash2,
+ 
 } from 'lucide-react';
+import { toast } from 'sonner';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,75 +35,126 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-interface Property {
-  id: string;
-  title: string;
-  landlord: {
-    name: string;
-    email: string;
-  };
-  rent: number;
-  bhk: string;
-  city: string;
-  status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
-  createdAt: string;
-  views: number;
-}
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  getAdminProperties,
+  getAdminPropertyStats,
+  updatePropertyStatus,
+  deleteProperty,
+  AdminProperty,
+  AdminPropertyStats,
+} from '@/lib/api/admin';
 
 export default function PropertyManagementPage() {
   const { getToken } = useAuth();
-  const [properties, setProperties] = useState<Property[]>([]);
+  const [properties, setProperties] = useState<AdminProperty[]>([]);
+  const [stats, setStats] = useState<AdminPropertyStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<AdminProperty | null>(null);
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   useEffect(() => {
     loadProperties();
-  }, []);
+    loadStats();
+  }, [filterStatus, currentPage]);
 
   const loadProperties = async () => {
     setIsLoading(true);
     try {
       const token = await getToken();
-      // Mock data for now
-      setProperties([
-        {
-          id: '1',
-          title: 'Modern 2BHK in Whitefield',
-          landlord: { name: 'Amit Kumar', email: 'amit@example.com' },
-          rent: 25000,
-          bhk: '2BHK',
-          city: 'Bangalore',
-          status: 'ACTIVE',
-          createdAt: new Date().toISOString(),
-          views: 156,
-        },
-        {
-          id: '2',
-          title: 'Cozy 1BHK near Metro',
-          landlord: { name: 'Priya Singh', email: 'priya@example.com' },
-          rent: 18000,
-          bhk: '1BHK',
-          city: 'Bangalore',
-          status: 'PENDING',
-          createdAt: new Date().toISOString(),
-          views: 42,
-        },
-      ]);
+      if (!token) return;
+
+      const filters: any = { page: currentPage, limit: 10 };
+      if (filterStatus !== 'ALL') filters.status = filterStatus;
+      if (searchQuery) filters.search = searchQuery;
+
+      const response = await getAdminProperties(token, filters);
+      setProperties(response.data);
+      setTotalPages(response.totalPages);
     } catch (error) {
       console.error('Failed to load properties:', error);
+      toast.error('Failed to load properties');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filteredProperties = properties.filter(property => {
-    const matchesSearch = property.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          property.landlord.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === 'ALL' || property.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  const loadStats = async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const statsData = await getAdminPropertyStats(token);
+      // console.log(statsData)
+      setStats({
+        totalProperties: statsData.totalProperties,
+        activeProperties: statsData.activeProperties,
+        inactiveProperties: statsData.inactiveProperties,
+        pending: 0,
+        totalViews: statsData.totalViews,
+        totalLeads: statsData.totalLeads,
+      });
+    
+    } catch (error) {
+      console.error('Failed to load stats:', error);
+    }
+  };
+
+  const handleStatusToggle = async (property: AdminProperty) => {
+    setIsActionLoading(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      
+      await updatePropertyStatus(token, property.id, !property.isActive);
+      toast.success(`Property ${!property.isActive ? 'activated' : 'deactivated'} successfully`);
+      loadProperties();
+      loadStats();
+    } catch (error) {
+      console.error('Failed to update property status:', error);
+      toast.error('Failed to update property status');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedProperty) return;
+    
+    setIsActionLoading(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      
+      await deleteProperty(token, selectedProperty.id);
+      toast.success('Property deleted successfully');
+      setDeleteDialogOpen(false);
+      setSelectedProperty(null);
+      loadProperties();
+      loadStats();
+    } catch (error) {
+      console.error('Failed to delete property:', error);
+      toast.error('Failed to delete property');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(1);
+    loadProperties();
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN').format(amount);
@@ -113,22 +168,30 @@ export default function PropertyManagementPage() {
     });
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return <Badge className="bg-green-100 text-green-700">Active</Badge>;
-      case 'INACTIVE':
-        return <Badge className="bg-gray-100 text-gray-700">Inactive</Badge>;
-      default:
-        return <Badge className="bg-yellow-100 text-yellow-700">Pending Review</Badge>;
+  const getStatusBadge = (isActive: boolean) => {
+    if (isActive) {
+      return <Badge className="bg-green-100 text-green-700">Active</Badge>;
     }
+    return <Badge className="bg-gray-100 text-gray-700">Inactive</Badge>;
   };
+
+  const getBHKLabel = (bhk: string) => {
+    const map: Record<string, string> = {
+      ONE_BHK: '1 BHK',
+      TWO_BHK: '2 BHK',
+      THREE_BHK: '3 BHK',
+      FOUR_BHK_PLUS: '4 BHK+',
+    };
+    return map[bhk] || bhk;
+  };
+
+ 
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <motion.div
+        <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
@@ -153,7 +216,7 @@ export default function PropertyManagementPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Total Properties</p>
-                  <p className="text-2xl font-bold">{properties.length}</p>
+                  <p className="text-2xl font-bold">{stats?.totalProperties || 0}</p>
                 </div>
                 <Home className="h-8 w-8 text-blue-500" />
               </div>
@@ -164,9 +227,7 @@ export default function PropertyManagementPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Active</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {properties.filter(p => p.status === 'ACTIVE').length}
-                  </p>
+                  <p className="text-2xl font-bold text-green-600">{stats?.activeProperties || 0}</p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-500" />
               </div>
@@ -176,12 +237,10 @@ export default function PropertyManagementPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Pending Review</p>
-                  <p className="text-2xl font-bold text-yellow-600">
-                    {properties.filter(p => p.status === 'PENDING').length}
-                  </p>
+                  <p className="text-sm text-gray-500">Inactive</p>
+                  <p className="text-2xl font-bold text-gray-600">{stats?.inactiveProperties || 0}</p>
                 </div>
-                <AlertTriangle className="h-8 w-8 text-yellow-500" />
+                <XCircle className="h-8 w-8 text-gray-500" />
               </div>
             </CardContent>
           </Card>
@@ -190,9 +249,7 @@ export default function PropertyManagementPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Total Views</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {properties.reduce((sum, p) => sum + p.views, 0)}
-                  </p>
+                  <p className="text-2xl font-bold text-purple-600">{stats?.totalViews || 0}</p>
                 </div>
                 <Eye className="h-8 w-8 text-purple-500" />
               </div>
@@ -208,14 +265,18 @@ export default function PropertyManagementPage() {
               placeholder="Search by property title or landlord..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               className="pl-10"
             />
           </div>
+          <Button onClick={handleSearch} variant="secondary" className="gap-2">
+            <Search className="h-4 w-4" />
+            Search
+          </Button>
           <Tabs value={filterStatus} onValueChange={setFilterStatus} className="w-full md:w-auto">
             <TabsList>
               <TabsTrigger value="ALL">All</TabsTrigger>
               <TabsTrigger value="ACTIVE">Active</TabsTrigger>
-              <TabsTrigger value="PENDING">Pending</TabsTrigger>
               <TabsTrigger value="INACTIVE">Inactive</TabsTrigger>
             </TabsList>
           </Tabs>
@@ -228,7 +289,7 @@ export default function PropertyManagementPage() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
               </div>
-            ) : filteredProperties.length === 0 ? (
+            ) : properties.length === 0 ? (
               <div className="text-center py-12">
                 <Home className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500">No properties found</p>
@@ -249,17 +310,17 @@ export default function PropertyManagementPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredProperties.map((property) => (
+                    {properties.map((property) => (
                       <TableRow key={property.id}>
                         <TableCell>
                           <div>
                             <p className="font-medium">{property.title}</p>
-                            <p className="text-sm text-gray-500">{property.bhk}</p>
+                            <p className="text-sm text-gray-500">{getBHKLabel(property.bhk)}</p>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="text-sm">{property.landlord.name}</p>
+                            <p className="text-sm">{property.landlord.fullName}</p>
                             <p className="text-xs text-gray-500">{property.landlord.email}</p>
                           </div>
                         </TableCell>
@@ -272,15 +333,44 @@ export default function PropertyManagementPage() {
                             {property.city}
                           </div>
                         </TableCell>
-                        <TableCell>{getStatusBadge(property.status)}</TableCell>
+                        <TableCell>{getStatusBadge(property.isActive)}</TableCell>
                         <TableCell className="text-sm text-gray-500">
                           {formatDate(property.createdAt)}
                         </TableCell>
-                        <TableCell className="text-sm">{property.views}</TableCell>
+                        <TableCell className="text-sm">{property.views || 0}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Link href={`/properties/${property.id}`} target="_blank">
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleStatusToggle(property)}
+                              disabled={isActionLoading}
+                            >
+                              {property.isActive ? (
+                                <PowerOff className="h-4 w-4 text-gray-500" />
+                              ) : (
+                                <Power className="h-4 w-4 text-green-600" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-500 hover:text-red-600"
+                              onClick={() => {
+                                setSelectedProperty(property);
+                                setDeleteDialogOpen(true);
+                              }}
+                              disabled={isActionLoading}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -288,9 +378,57 @@ export default function PropertyManagementPage() {
                 </Table>
               </div>
             )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-4 border-t">
+                <p className="text-sm text-gray-500">
+                  Page {currentPage} of {totalPages}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1 || isLoading}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages || isLoading}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Property</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{selectedProperty?.title}"? This action cannot be undone.
+              All associated data including images, leads, and visits will be permanently removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isActionLoading}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isActionLoading}>
+              {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

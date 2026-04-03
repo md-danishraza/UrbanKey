@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.middleware.js";
+import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 import {
   recordPayment,
   getPayments,
@@ -12,9 +12,9 @@ const router = Router();
 // All routes require authentication
 router.use(requireAuth);
 
-router.post("/", recordPayment);
+router.post("/", requireRole(["LANDLORD", "ADMIN"]), recordPayment);
 router.get("/summary", getPaymentSummary);
 router.get("/agreement/:agreementId", getPayments);
-router.patch("/:id", updatePaymentStatus);
+router.patch("/:id", requireRole(["LANDLORD", "ADMIN"]), updatePaymentStatus);
 
 export default router;

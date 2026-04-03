@@ -195,6 +195,7 @@ export default function AdminVerificationsPage() {
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
         onActionComplete={handleActionComplete}
+        
       />
     </div>
   );

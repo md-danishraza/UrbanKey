@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.middleware.js";
+import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 import {
   acceptLandlordAgreement,
   getAgreementStatus,
@@ -11,7 +11,11 @@ const router = Router();
 router.use(requireAuth);
 
 // Landlord agreement routes
-router.post("/landlord", acceptLandlordAgreement);
-router.get("/landlord", getAgreementStatus);
+router.post(
+  "/landlord",
+  requireRole(["LANDLORD", "ADMIN"]),
+  acceptLandlordAgreement
+);
+router.get("/landlord", requireRole(["LANDLORD", "ADMIN"]), getAgreementStatus);
 
 export default router;

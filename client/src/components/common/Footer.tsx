@@ -106,7 +106,7 @@ export default function Footer() {
                       href={item.href}
                       className="text-gray-600 hover:text-rose-600 text-sm transition-colors duration-200 flex items-center gap-2 group"
                     >
-                      <Icon className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <Icon className="w-4 h-4 opacity-80 group-hover:opacity-100 transition-opacity" />
                       {item.name}
                     </Link>
                   </li>
@@ -129,7 +129,7 @@ export default function Footer() {
                       href={item.href}
                       className="text-gray-600 hover:text-rose-600 text-sm transition-colors duration-200 flex items-center gap-2 group"
                     >
-                      <Icon className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <Icon className="w-4 h-4 opacity-80 group-hover:opacity-100 transition-opacity" />
                       {item.name}
                     </Link>
                   </li>
@@ -152,7 +152,7 @@ export default function Footer() {
                       href={item.href}
                       className="text-gray-600 hover:text-rose-600 text-sm transition-colors duration-200 flex items-center gap-2 group"
                     >
-                      <Icon className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <Icon className="w-4 h-4 opacity-80 group-hover:opacity-100 transition-opacity" />
                       {item.name}
                     </Link>
                   </li>

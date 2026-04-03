@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.middleware.js";
+import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 import {
   createVisit,
   getLandlordVisits,
@@ -13,11 +13,11 @@ const router = Router();
 router.use(requireAuth);
 
 // Tenant routes
-router.post("/", createVisit);
+router.post("/", requireRole(["TENANT"]), createVisit);
 router.get("/my-visits", getTenantVisits);
 
 // Landlord routes
 router.get("/landlord", getLandlordVisits);
-router.patch("/:visitId/status", updateVisitStatus);
+router.patch("/:visitId/status", requireRole(["LANDLORD"]), updateVisitStatus);
 
 export default router;

@@ -8,7 +8,7 @@ import {
 } from "../services/embedding.service.js";
 
 // Helper function to validate and extract property ID from params
-const validatePropertyId = (
+export const validatePropertyId = (
   propertyId: string | string[] | undefined
 ): string => {
   if (!propertyId || Array.isArray(propertyId)) {

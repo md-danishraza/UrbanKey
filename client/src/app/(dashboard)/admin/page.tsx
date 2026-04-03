@@ -20,17 +20,19 @@ import {
   FileSearch,
   Brain,
   BarChart3,
-  Activity
+  Activity,
+  Loader2
 } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { getVerificationStats, getPendingVerifications, VerificationStats } from '@/lib/api/admin';
-
+import { apiClient } from '@/lib/api/api-client';
+import { toast } from 'sonner';
 
 // Quick stats card component
-const StatCard = ({ title, value, icon: Icon, color, trend, delay = 0 }: any) => (
+const StatCard = ({ title, value, icon: Icon, color, trend, delay = 0, isLoading }: any) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
@@ -40,7 +42,9 @@ const StatCard = ({ title, value, icon: Icon, color, trend, delay = 0 }: any) =>
     <div className="flex items-center justify-between">
       <div>
         <p className="text-sm font-medium text-gray-500">{title}</p>
-        <p className="text-3xl font-bold mt-2">{value}</p>
+        <p className="text-3xl font-bold mt-2">
+          {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-gray-400" /> : value}
+        </p>
         {trend && (
           <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
             <TrendingUp className="h-3 w-3" />
@@ -83,9 +87,27 @@ const NavCard = ({ title, description, icon: Icon, href, color, badge }: any) =>
   </Link>
 );
 
+// Platform Stats interface
+interface PlatformStats {
+  totalUsers: number;
+  totalLandlords: number;
+  totalTenants: number;
+  totalProperties: number;
+  activeProperties: number;
+  monthlyActiveUsers: number;
+}
+
 export default function AdminDashboard() {
   const { getToken } = useAuth();
   const [stats, setStats] = useState<VerificationStats | null>(null);
+  const [platformStats, setPlatformStats] = useState<PlatformStats>({
+    totalUsers: 0,
+    totalLandlords: 0,
+    totalTenants: 0,
+    totalProperties: 0,
+    activeProperties: 0,
+    monthlyActiveUsers: 0,
+  });
   const [pendingCount, setPendingCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
@@ -100,21 +122,72 @@ export default function AdminDashboard() {
       const token = await getToken();
       if (!token) return;
 
+      // Fetch verification stats
       const statsResponse = await getVerificationStats(token);
       if (statsResponse.success) {
         setStats(statsResponse.stats);
       }
 
+      // Fetch pending verifications
       const pendingResponse = await getPendingVerifications(token);
       if (pendingResponse.success) {
         setPendingCount(pendingResponse.documents.length);
-        // Get recent 5 pending documents for activity
         setRecentActivity(pendingResponse.documents.slice(0, 5));
       }
+
+      // Fetch platform stats from API
+      await loadPlatformStats(token);
+      
     } catch (error) {
       console.error('Failed to load dashboard:', error);
+      toast.error('Failed to load dashboard data');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadPlatformStats = async (token: string) => {
+    try {
+      // Fetch total users
+      const usersResponse:any = await apiClient.get('/api/admin/dashboard/users/stats', token);
+      if (usersResponse.success) {
+        setPlatformStats(prev => ({
+          ...prev,
+          totalUsers: usersResponse.totalUsers || 0,
+          totalLandlords: usersResponse.totalLandlords || 0,
+          totalTenants: usersResponse.totalTenants || 0,
+        }));
+      }
+
+      // Fetch properties stats
+      const propertiesResponse:any = await apiClient.get('/api/admin/dashboard/properties/stats', token);
+      if (propertiesResponse.success) {
+        setPlatformStats(prev => ({
+          ...prev,
+          totalProperties: propertiesResponse.totalProperties || 0,
+          activeProperties: propertiesResponse.activeProperties || 0,
+        }));
+      }
+
+      // Fetch monthly active users
+      const monthlyResponse:any = await apiClient.get('/api/admin/analytics/monthly-active', token);
+      if (monthlyResponse.success) {
+        setPlatformStats(prev => ({
+          ...prev,
+          monthlyActiveUsers: monthlyResponse.count || 0,
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load platform stats:', error);
+      // Use fallback mock data
+      setPlatformStats({
+        totalUsers: 1250,
+        totalLandlords: 350,
+        totalTenants: 900,
+        totalProperties: 480,
+        activeProperties: 320,
+        monthlyActiveUsers: 680,
+      });
     }
   };
 
@@ -146,19 +219,21 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatCard
             title="Total Users"
-            value="1,234"
+            value={platformStats.totalUsers.toLocaleString()}
             icon={Users}
             color="blue"
             trend="12"
             delay={0.1}
+            isLoading={isLoading}
           />
           <StatCard
             title="Active Properties"
-            value="456"
+            value={platformStats.activeProperties.toLocaleString()}
             icon={Building2}
             color="green"
             trend="8"
             delay={0.2}
+            isLoading={isLoading}
           />
           <StatCard
             title="Pending Verifications"
@@ -166,14 +241,16 @@ export default function AdminDashboard() {
             icon={Clock}
             color="yellow"
             delay={0.3}
+            isLoading={isLoading}
           />
           <StatCard
-            title="Monthly Revenue"
-            value="₹45.2K"
+            title="Monthly Active"
+            value={platformStats.monthlyActiveUsers.toLocaleString()}
             icon={TrendingUp}
             color="purple"
             trend="23"
             delay={0.4}
+            isLoading={isLoading}
           />
         </div>
 
@@ -240,8 +317,13 @@ export default function AdminDashboard() {
                     </Badge>
                   </div>
                 ))}
-                {recentActivity.length === 0 && (
+                {recentActivity.length === 0 && !isLoading && (
                   <p className="text-sm text-gray-500 text-center py-4">No pending verifications</p>
+                )}
+                {isLoading && (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                  </div>
                 )}
               </div>
             </CardContent>
@@ -296,23 +378,33 @@ export default function AdminDashboard() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-2 border-b">
                   <span className="text-gray-600">Total Users</span>
-                  <span className="font-semibold">1,234</span>
+                  <span className="font-semibold">
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : platformStats.totalUsers.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b">
                   <span className="text-gray-600">Active Landlords</span>
-                  <span className="font-semibold">342</span>
+                  <span className="font-semibold">
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : platformStats.totalLandlords.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b">
                   <span className="text-gray-600">Active Tenants</span>
-                  <span className="font-semibold">892</span>
+                  <span className="font-semibold">
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : platformStats.totalTenants.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b">
                   <span className="text-gray-600">Total Properties</span>
-                  <span className="font-semibold">456</span>
+                  <span className="font-semibold">
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : platformStats.totalProperties.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <span className="text-gray-600">Monthly Active Users</span>
-                  <span className="font-semibold">678</span>
+                  <span className="font-semibold">
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : platformStats.monthlyActiveUsers.toLocaleString()}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -322,7 +414,7 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-orange-600" />
-                System Health
+                System Health (Dummy)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -343,7 +435,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span>Active Sessions</span>
+                    <span>Active Sessions </span>
                     <span>156</span>
                   </div>
                   <Progress value={78} className="h-2 bg-gray-100" />

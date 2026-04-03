@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.middleware.js";
+import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 import {
   createProperty,
   getAllProperties,
@@ -24,10 +24,19 @@ router.get("/stats", getStats);
 router.get("/:id", getPropertyById);
 
 // Protected routes
-router.post("/", requireAuth, createProperty);
-router.put("/:id", requireAuth, updateProperty);
-router.delete("/:id", requireAuth, deleteProperty);
-router.patch("/:id/toggle", requireAuth, togglePropertyAvailability);
-router.get("/:id/analytics", requireAuth, getPropertyAnalytics);
+router.use(requireAuth);
+router.post("/", requireRole(["LANDLORD", "ADMIN"]), createProperty);
+router.put("/:id", requireRole(["LANDLORD", "ADMIN"]), updateProperty);
+router.delete("/:id", requireRole(["LANDLORD", "ADMIN"]), deleteProperty);
+router.patch(
+  "/:id/toggle",
+  requireRole(["LANDLORD", "ADMIN"]),
+  togglePropertyAvailability
+);
+router.get(
+  "/:id/analytics",
+  requireRole(["LANDLORD", "ADMIN"]),
+  getPropertyAnalytics
+);
 
 export default router;

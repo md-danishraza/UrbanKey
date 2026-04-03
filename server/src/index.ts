@@ -8,7 +8,6 @@ import onBoardingRoutes from "./routes/onboarding.routes.js";
 import propertyRoutes from "./routes/property.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
-import testRoutes from "./routes/test.routes.js";
 import documentRoutes from "./routes/document.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import onBoardingAgreementRoutes from "./routes/onBoardingAgreement.routes.js";
@@ -49,8 +48,6 @@ app.use("/api/onboarding/agreement", onBoardingAgreementRoutes);
 app.use("/api/images", imageRoutes);
 // dashboards
 app.use("/api/landlord/dashboard", landlordDashboardRoutes);
-// implement later on
-// app.use('/api/tenant/dashboard', landlordDashboardRoutes);
 
 app.use("/api/leads", leadRoutes);
 app.use("/api/visits", visitRoutes);
@@ -74,11 +71,6 @@ app.get("/health", (req, res) => {
     environment: process.env.NODE_ENV,
   });
 });
-
-if (process.env.NODE_ENV === "development") {
-  app.use("/api/test", testRoutes);
-  console.log("🧪 Test routes enabled for development");
-}
 
 // Error handler (must be last)
 app.use(errorHandler);

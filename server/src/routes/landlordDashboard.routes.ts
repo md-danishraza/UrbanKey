@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.middleware.js";
+import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 import {
   getDashboardStats,
   getRecentLeads,
@@ -9,6 +9,7 @@ const router = Router();
 
 // All dashboard routes require authentication
 router.use(requireAuth);
+router.use(requireRole(["LANDLORD", "ADMIN"]));
 
 router.get("/stats", getDashboardStats);
 router.get("/leads", getRecentLeads);

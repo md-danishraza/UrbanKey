@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.middleware.js";
+import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 import {
   createLead,
   getLandlordLeads,
@@ -13,11 +13,15 @@ const router = Router();
 router.use(requireAuth);
 
 // Tenant routes
-router.post("/", createLead);
-router.get("/my-leads", getTenantLeads);
+router.post("/", requireRole(["TENANT", "ADMIN"]), createLead);
+router.get("/my-leads", requireRole(["TENANT", "ADMIN"]), getTenantLeads);
 
 // Landlord routes
-router.get("/landlord", getLandlordLeads);
-router.patch("/:leadId/status", updateLeadStatus);
+router.get("/landlord", requireRole(["LANDLORD", "ADMIN"]), getLandlordLeads);
+router.patch(
+  "/:leadId/status",
+  requireRole(["LANDLORD,ADMIN"]),
+  updateLeadStatus
+);
 
 export default router;

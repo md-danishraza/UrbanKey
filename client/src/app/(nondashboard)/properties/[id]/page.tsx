@@ -82,7 +82,7 @@ export default function PropertyDetailsPage() {
   if (property.petFriendly) amenities.push('Pet Friendly');
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white py-8 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Back Button */}
         <Link href="/properties/search" className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900 mb-4">

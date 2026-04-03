@@ -5,7 +5,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { X, Loader2, Navigation, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+
 import { formatCurrency } from '@/lib/utils';
 
 interface Property {
@@ -30,19 +30,16 @@ interface PropertyMapProps {
 const createPopupHTML = (property: Property) => {
   const primaryImage = property.images?.find(img => img.isPrimary)?.imageUrl || property.images?.[0]?.imageUrl;
   return `
-    <div class="property-popup">
-      <div class="flex gap-3 max-w-[250px]">
+    <div class="property-popup" style="cursor: pointer;">
+      <div class="flex gap-3 max-w-[250px] p-1">
         ${primaryImage ? `<img src="${primaryImage}" alt="${property.title}" class="w-16 h-16 rounded-lg object-cover" />` : ''}
         <div>
           <h4 class="font-semibold text-sm">${property.title}</h4>
           <p class="text-blue-600 font-bold text-sm">₹${formatCurrency(property.rent)}/mo</p>
           <p class="text-xs text-gray-500">${property.bhk} • ${property.city}</p>
-          <button 
-            onclick="window.dispatchEvent(new CustomEvent('propertyClick', { detail: { propertyId: '${property.id}' } }))"
-            class="mt-1 text-xs text-blue-600 hover:underline"
-          >
-            View Details
-          </button>
+          <div class="mt-1 text-xs text-blue-600 hover:underline cursor-pointer" onclick="window.dispatchEvent(new CustomEvent('propertyClick', { detail: { propertyId: '${property.id}' } }))">
+            View Details →
+          </div>
         </div>
       </div>
     </div>
@@ -54,6 +51,7 @@ export function PropertyMapCluster({ properties, isOpen, onClose, onPropertyClic
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const popups = useRef<{ [key: string]: mapboxgl.Popup }>({});
+  const hoverTimeout = useRef<{ [key: string]: NodeJS.Timeout }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
@@ -102,7 +100,6 @@ export function PropertyMapCluster({ properties, isOpen, onClose, onPropertyClic
       }
     };
 
-    // Small delay to ensure modal is fully rendered
     setTimeout(initMap, 100);
 
     return () => {
@@ -112,6 +109,7 @@ export function PropertyMapCluster({ properties, isOpen, onClose, onPropertyClic
       }
       markers.current = {};
       popups.current = {};
+      hoverTimeout.current = {};
     };
   }, [isOpen, properties]);
 
@@ -121,7 +119,7 @@ export function PropertyMapCluster({ properties, isOpen, onClose, onPropertyClic
     addMarkers();
   }, [properties, isOpen, isLoading]);
 
-  // Add markers to map
+  // Add markers to map with hover functionality
   const addMarkers = () => {
     if (!map.current) return;
 
@@ -135,8 +133,8 @@ export function PropertyMapCluster({ properties, isOpen, onClose, onPropertyClic
     properties.forEach((property) => {
       if (!property.latitude || !property.longitude) return;
 
-      // Create popup
-      const popup = new mapboxgl.Popup({ offset: 25, closeButton: false })
+      // Create popup (initially closed)
+      const popup = new mapboxgl.Popup({ offset: 25, closeButton: false, closeOnClick: false })
         .setHTML(createPopupHTML(property));
       
       popups.current[property.id] = popup;
@@ -144,13 +142,43 @@ export function PropertyMapCluster({ properties, isOpen, onClose, onPropertyClic
       // Create marker
       const marker = new mapboxgl.Marker({ color: '#3b82f6' })
         .setLngLat([property.longitude, property.latitude])
-        .setPopup(popup)
         .addTo(map.current!);
 
-      // Add click handler
-      marker.getElement().addEventListener('click', () => {
+      // Hover enter - show popup after short delay
+      marker.getElement().addEventListener('mouseenter', () => {
+        // Clear any existing timeout for this marker
+        if (hoverTimeout.current[property.id]) {
+          clearTimeout(hoverTimeout.current[property.id]);
+        }
+        
+        // Show popup immediately with slight delay for better UX
+        hoverTimeout.current[property.id] = setTimeout(() => {
+          popup.setLngLat([property.longitude, property.latitude]).addTo(map.current!);
+        }, 150);
+      });
+
+      // Hover leave - hide popup after delay
+      marker.getElement().addEventListener('mouseleave', () => {
+        if (hoverTimeout.current[property.id]) {
+          clearTimeout(hoverTimeout.current[property.id]);
+        }
+        
+        // Small delay before hiding to allow moving to popup
+        setTimeout(() => {
+          try {
+            popup.remove();
+          } catch (e) {
+            // Popup already removed
+          }
+        }, 100);
+      });
+
+      // Click handler for navigation
+      marker.getElement().addEventListener('click', (e) => {
+        e.stopPropagation();
         if (onPropertyClick) {
           onPropertyClick(property.id);
+          onClose();
         }
       });
 
@@ -166,12 +194,12 @@ export function PropertyMapCluster({ properties, isOpen, onClose, onPropertyClic
     }
   };
 
-  // Handle property click from popup
+  // Handle property click from popup button
   useEffect(() => {
     const handlePropertyClick = (e: CustomEvent) => {
       if (onPropertyClick) {
         onPropertyClick(e.detail.propertyId);
-        onClose(); // Close map modal when property is clicked
+        onClose();
       }
     };
 
@@ -221,10 +249,31 @@ export function PropertyMapCluster({ properties, isOpen, onClose, onPropertyClic
     );
   };
 
+  // Add CSS for popup styling
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .property-popup .mapboxgl-popup-content {
+        padding: 8px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+      }
+      .property-popup .mapboxgl-popup-content:hover {
+        background: #f8fafc;
+      }
+      .property-popup .mapboxgl-popup-close-button {
+        display: none;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => style.remove();
+  }, []);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed mt-8 inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="map-modal-content relative w-full max-w-6xl h-[85vh] bg-white rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-3 bg-white/90 backdrop-blur-sm border-b">
