@@ -51,7 +51,7 @@ const socialLinks = [
 ];
 
 const contactInfo = [
-  { icon: MapPin, text: 'Bangalore, Karnataka, India', href: null },
+  { icon: MapPin, text: 'New Delhi, India', href: null },
   { icon: Mail, text: 'support@urbankey.com', href: 'mailto:support@urbankey.com' },
   { icon: Phone, text: '+91 98765 43210', href: 'tel:+919876543210' },
 ];
