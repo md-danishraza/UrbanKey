@@ -1,0 +1,16 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Disallow admin and private routes
+Disallow: /admin/
+Disallow: /api/
+Disallow: /landlord/
+Disallow: /tenant/
+Disallow: /auth/
+
+# Sitemap location
+Sitemap: https://urbankey.com/sitemap.xml
+
+# Crawl delay
+Crawl-delay: 1

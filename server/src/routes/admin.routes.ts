@@ -20,6 +20,10 @@ import {
   verifyUser,
   deleteUser,
 } from "../controllers/admin.controller.js";
+import {
+  getAIAnalytics,
+  getQuickStats,
+} from "../controllers/admin-ai.controller.js";
 
 const router = Router();
 
@@ -52,5 +56,9 @@ router.get("/users/stats", getAdminUserStats);
 router.patch("/users/:userId/role", updateUserRole);
 router.patch("/users/:userId/verify", verifyUser);
 router.delete("/users/:userId", deleteUser);
+
+// Ai analytics
+router.post("/ai/analyze", getAIAnalytics);
+router.get("/ai/quick-stats", getQuickStats);
 
 export default router;

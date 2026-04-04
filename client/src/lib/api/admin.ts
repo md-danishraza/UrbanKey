@@ -299,3 +299,39 @@ export async function suspendUser(
   if (!token) throw new Error("No auth token");
   return apiClient.delete(`/api/admin/users/${userId}`, token);
 }
+
+// Ai analytics page
+export interface AIAnalysisRequest {
+  query: string;
+  type?: "general" | "properties" | "users" | "market";
+}
+
+export interface AIAnalysisResponse {
+  success: boolean;
+  answer: string;
+  insights?: {
+    trends: string[];
+    recommendations: string[];
+    stats: Record<string, any>;
+  };
+}
+
+// Get AI-powered analytics
+export async function getAIAnalytics(
+  token: string | null,
+  data: AIAnalysisRequest
+): Promise<AIAnalysisResponse> {
+  if (!token) throw new Error("No auth token");
+  return apiClient.post("/api/admin/ai/analyze", data, token);
+}
+
+// Get quick stats for dashboard
+export async function getQuickStats(token: string | null): Promise<{
+  mostSearchedArea: string;
+  averageRent2BHK: number;
+  highestDemand: string;
+  responseRate: number;
+}> {
+  if (!token) throw new Error("No auth token");
+  return apiClient.get("/api/admin/ai/quick-stats", token);
+}

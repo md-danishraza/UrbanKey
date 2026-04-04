@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Train, MapPin, Loader2, Navigation, X, Maximize2, LocateFixed, Search } from 'lucide-react';
+import { Train,  Loader2, X, Maximize2, LocateFixed, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

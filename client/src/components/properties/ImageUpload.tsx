@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, X, Loader2, Image as ImageIcon, Star, StarOff, GripVertical } from 'lucide-react';
+import { Upload, X, Loader2, Star, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

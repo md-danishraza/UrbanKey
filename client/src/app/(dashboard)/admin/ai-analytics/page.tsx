@@ -1,65 +1,94 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 import { 
   ChevronLeft, 
   Brain, 
   TrendingUp, 
   Search,
-
   Sparkles,
   Loader2,
-  ArrowRight
+  ArrowRight,
+  RefreshCw
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { getAIAnalytics, getQuickStats } from '@/lib/api/admin';
 
 export default function AIAnalyticsPage() {
+  const { getToken } = useAuth();
   const [query, setQuery] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [response, setResponse] = useState('');
+  const [quickStats, setQuickStats] = useState({
+    mostSearchedArea: 'Whitefield',
+    averageRent2BHK: 28500,
+    highestDemand: 'Fully Furnished',
+    responseRate: 23,
+  });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+
+  useEffect(() => {
+    loadQuickStats();
+  }, []);
+
+  const loadQuickStats = async () => {
+    setIsLoadingStats(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      
+      const stats = await getQuickStats(token);
+      setQuickStats(stats);
+    } catch (error) {
+      console.error('Failed to load quick stats:', error);
+      toast.error('Failed to load statistics');
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
 
   const handleAnalyze = async () => {
     if (!query.trim()) return;
     
     setIsAnalyzing(true);
     try {
-      // This would be your actual AI analysis API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setResponse(`Based on your query "${query}", here are the insights:
-
-1. Market Trends: Rental prices in Bangalore have increased by 12% in the last quarter
-2. Most Sought-after Areas: Whitefield, Indiranagar, and Koramangala
-3. Average Rent for 2BHK: ₹28,500/month
-4. Tenant Preferences: 65% prefer fully furnished apartments
-5. Metro Connectivity: Properties within 1km of metro stations have 40% higher demand
-
-Recommendations:
-- Focus on properties near metro stations
-- Consider adding virtual tours for better engagement
-- Respond to inquiries within 2 hours for higher conversion`);
+      const token = await getToken();
+      if (!token) return;
+      
+      const result = await getAIAnalytics(token, { query });
+      setResponse(result.answer);
     } catch (error) {
       console.error('Analysis failed:', error);
+      toast.error('Failed to analyze. Please try again.');
     } finally {
       setIsAnalyzing(false);
     }
   };
 
   const trendingQueries = [
-    'What are the most popular areas in Bangalore?',
-    'Average rent trends this month',
-    'Properties with highest engagement',
-    'Tenant preferences analysis',
+    'What are the most popular areas for properties?',
+    'Show me rent trends for different BHK types',
+    'What amenities do tenants prefer most?',
+    'Analyze user growth and engagement',
+    'Which property type has the highest demand?',
+    'What is the average response time for leads?',
   ];
 
+  const handleSuggestedQuery = (q: string) => {
+    setQuery(q);
+    setTimeout(() => handleAnalyze(), 100);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-rose-50 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
@@ -74,14 +103,26 @@ Recommendations:
             <ChevronLeft className="h-4 w-4" />
             Back to Dashboard
           </Link>
-          <div className="flex items-center gap-3">
-            <Brain className="h-8 w-8 text-purple-600" />
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                AI Analytics & Insights
-              </h1>
-              <p className="text-gray-600 mt-1">Powered by Gemini AI - Get intelligent property insights</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Brain className="h-8 w-8 text-purple-600" />
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  AI Analytics & Insights
+                </h1>
+                <p className="text-gray-600 mt-1">Powered by Gemini AI - Get intelligent property insights</p>
+              </div>
             </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={loadQuickStats}
+              disabled={isLoadingStats}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoadingStats ? 'animate-spin' : ''}`} />
+              Refresh Stats
+            </Button>
           </div>
         </motion.div>
 
@@ -106,7 +147,7 @@ Recommendations:
                         <Brain className="h-5 w-5 text-purple-600 mt-0.5" />
                         <div className="flex-1">
                           <p className="text-sm font-medium text-purple-900 mb-2">AI Analysis</p>
-                          <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                          <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
                             {response}
                           </div>
                         </div>
@@ -148,7 +189,7 @@ Recommendations:
                   <Button 
                     onClick={handleAnalyze} 
                     disabled={!query.trim() || isAnalyzing}
-                    className="h-auto"
+                    className="h-auto px-6"
                   >
                     {isAnalyzing ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -172,11 +213,11 @@ Recommendations:
                 </CardTitle>
                 <CardDescription>Popular questions from other admins</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2">
                 {trendingQueries.map((q, i) => (
                   <button
                     key={i}
-                    onClick={() => setQuery(q)}
+                    onClick={() => handleSuggestedQuery(q)}
                     className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors group"
                   >
                     <p className="text-sm text-gray-700 group-hover:text-purple-600">{q}</p>
@@ -196,21 +237,33 @@ Recommendations:
               <CardContent className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Most Searched Area</span>
-                  <span className="font-semibold">Whitefield</span>
+                  <span className="font-semibold">
+                    {isLoadingStats ? <Loader2 className="h-4 w-4 animate-spin" /> : quickStats.mostSearchedArea}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Average Rent (2BHK)</span>
-                  <span className="font-semibold">₹28,500</span>
+                  <span className="font-semibold">
+                    {isLoadingStats ? <Loader2 className="h-4 w-4 animate-spin" /> : `₹${quickStats.averageRent2BHK.toLocaleString()}`}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Highest Demand</span>
-                  <Badge variant="outline" className="bg-green-50 text-green-700">Fully Furnished</Badge>
+                  {isLoadingStats ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Badge variant="outline" className="bg-green-50 text-green-700">
+                      {quickStats.highestDemand}
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Response Rate</span>
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-3 w-3 text-green-600" />
-                    <span className="font-semibold text-green-600">+23%</span>
+                    <span className="font-semibold text-green-600">
+                      {isLoadingStats ? <Loader2 className="h-4 w-4 animate-spin" /> : `+${quickStats.responseRate}%`}
+                    </span>
                   </div>
                 </div>
               </CardContent>

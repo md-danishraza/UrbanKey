@@ -5,6 +5,7 @@ import FeaturedProperties from "./FeaturedProperties"
 import HeroSection from "./HeroSection"
 import HowItWorks from "./HowItWorks"
 import { AntigravityBackground } from "@/components/common/AntigravityBackground";
+import Testimonials from "./Testimonials";
 
 
 function Landing() {
@@ -18,6 +19,7 @@ function Landing() {
       <HeroSection />
       <FeaturedProperties />
       <HowItWorks />
+      <Testimonials/>
     </motion.div>
   );
 }
