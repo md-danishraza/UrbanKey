@@ -6,8 +6,8 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
 import hpp from "hpp";
-import mongoSanitize from "express-mongo-sanitize";
 
+// routes
 import authRoutes from "./routes/auth.routes.js";
 import onBoardingRoutes from "./routes/onboarding.routes.js";
 import propertyRoutes from "./routes/property.routes.js";
@@ -117,8 +117,7 @@ app.use(compression());
 // 5. HPP - Prevent HTTP Parameter Pollution
 app.use(hpp());
 
-// 6. Data Sanitization - Prevent NoSQL injection and XSS
-app.use(mongoSanitize());
+// 6. Input Sanitization - Prevent NoSQL injection and XSS
 
 // 7. Morgan logging with different formats for production/development
 if (isProduction) {

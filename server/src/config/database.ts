@@ -12,7 +12,7 @@ const connectionString = process.env.DATABASE_URL!;
 const pool = new Pool({ connectionString });
 
 const adapter = new PrismaPg(pool, {
-  schemas: ["urbankey"], // Explicitly pass schemas for multi-schema support
+  schema: "urbankey", // Explicitly pass schemas for multi-schema support
 });
 
 const prisma = new PrismaClient({ adapter });

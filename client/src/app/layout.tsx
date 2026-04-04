@@ -56,7 +56,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: "https://urbankey.com",
+    url: "https://urban-key-one.vercel.app",
     siteName: "UrbanKey",
     title: "UrbanKey - AI-Powered Rental Platform",
     description: "Find your perfect home with zero brokerage. AI-powered search, verified landlords, and digital agreements.",

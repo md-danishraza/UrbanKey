@@ -10,7 +10,7 @@ Disallow: /tenant/
 Disallow: /auth/
 
 # Sitemap location
-Sitemap: https://urbankey.com/sitemap.xml
+Sitemap: https://urban-key-one.vercel.app/sitemap.xml
 
 # Crawl delay
 Crawl-delay: 1
