@@ -319,10 +319,6 @@ export default function AboutPage() {
           </Link>
         </motion.div>
 
-        {/* Footer Note */}
-        <div className="text-center text-sm text-gray-400 mt-16 pt-8 border-t border-gray-200">
-          <p>© 2026 UrbanKey. All rights reserved. Made with ❤️ in India.</p>
-        </div>
       </div>
     </div>
   );

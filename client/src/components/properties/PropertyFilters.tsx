@@ -82,7 +82,7 @@ export function PropertyFilters({ filters, setFilters }: PropertyFiltersProps) {
   };
 
   return (
-    <Card className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto rounded-sm backdrop-blur-xs bg-white/10 text-accent">
+    <Card className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto rounded-sm backdrop-blur-xs bg-white/50 text-black lg:text-white">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between">
           Filters

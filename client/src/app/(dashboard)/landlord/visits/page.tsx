@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getLandlordVisits, updateVisitStatus, Visit } from '@/lib/api/visits';
+import { useLandlordVerification } from '@/hooks/useLandlordVerification';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 
 const statusColors = {
@@ -33,9 +35,19 @@ export default function LandlordVisitsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [updating, setUpdating] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadVisits();
-  }, [statusFilter]);
+  // Check landlord verification - redirects if not verified
+          const { isVerified, isLoading: isVerificationLoading } = useLandlordVerification(true);
+          useEffect(() => {
+            if (isVerified === true) {
+              loadVisits();
+            }
+          }, [isVerified,statusFilter]);
+          // If not verified, don't render the page (hook will redirect)
+          if (!isVerified) {
+            return null;
+          }
+
+
 
   const loadVisits = async () => {
     setIsLoading(true);
@@ -78,17 +90,11 @@ export default function LandlordVisitsPage() {
     });
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen  bg-gradient-to-b from-rose-50 to-white flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-      </div>
-    );
-  }
+  if (isLoading || isVerificationLoading) return <LoadingSpinner/>
 
   const pendingVisits = visits.filter(v => v.status === 'PENDING');
   const confirmedVisits = visits.filter(v => v.status === 'CONFIRMED');
-  const otherVisits = visits.filter(v => v.status !== 'PENDING' && v.status !== 'CONFIRMED');
+ 
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">

@@ -208,11 +208,13 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
           <div className="flex items-center gap-1">
-            <span>© {currentYear} UrbanKey. All rights reserved.</span>
+            <span>© <span suppressHydrationWarning>{currentYear}</span> UrbanKey. All rights reserved.</span>
             <span className="hidden md:inline">•</span>
             <span className="flex items-center gap-1">
               Made with <Heart className="w-3 h-3 text-red-500 animate-pulse" /> in India
             </span>
+            <span className="hidden md:inline">•</span>
+            <span>Developer : Md. Danish Raza </span>
           </div>
           <div className="flex gap-6">
             <Link href="/privacy" className="hover:text-rose-600 transition-colors">

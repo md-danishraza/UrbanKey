@@ -242,6 +242,7 @@ const ScrollStack = ({
         lerp: 0.1,
         syncTouch: true,
         syncTouchLerp: 0.075
+      
         // Removed `touchInertiaMultiplier` and `touchInertia` as they no longer exist.
         // If you need custom touch physics, you can add: touchInertiaExponent: 2 (or another number)
       });

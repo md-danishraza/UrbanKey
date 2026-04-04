@@ -12,6 +12,8 @@ import { QuickActions } from '@/components/landlord/QuickActions';
 import { RecentProperties } from '@/components/landlord/RecentProperties';
 import { apiClient } from '@/lib/api/api-client';
 import { Card, CardContent } from '@/components/ui/card';
+import { useLandlordVerification } from '@/hooks/useLandlordVerification';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface DashboardStats {
   totalProperties: number;
@@ -36,13 +38,20 @@ export default function LandlordDashboard() {
   const [properties, setProperties] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // console.log(stats)
+   // Check landlord verification - redirects if not verified
+      const { isVerified, isLoading: isVerificationLoading } = useLandlordVerification(true);
+      useEffect(() => {
+        if (isVerified === true) {
+          loadDashboardData();
+        }
+      }, [isVerified,user]);
+      // If not verified, don't render the page (hook will redirect)
+      if (!isVerified) {
+        return null;
+      }
+    
 
-  useEffect(() => {
-    if (user) {
-      loadDashboardData();
-    }
-  }, [user]);
+
 
   const loadDashboardData = async () => {
     setIsLoading(true);
@@ -68,6 +77,8 @@ export default function LandlordDashboard() {
       setIsLoading(false);
     }
   };
+
+  if(isLoading || isVerificationLoading) return <LoadingSpinner/>
 
   return (
     <div className="min-h-screen  bg-gradient-to-b from-rose-50 to-white py-8 px-4">

@@ -10,8 +10,12 @@ const isPublicRoute = createRouteMatcher([
   "/about",
   "/contact",
   "/faqs",
+  "/disclaimer",
+  "/cookies",
   "/terms",
   "/privacy",
+  "/blog",
+  "/sitemap",
   "/auth/login(.*)",
   "/auth/register(.*)",
   "/api/webhook(.*)", // Webhooks for Clerk/Stripe/etc.

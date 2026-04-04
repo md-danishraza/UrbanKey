@@ -18,6 +18,7 @@ import { apiClient } from '@/lib/api/api-client';
 import { updateUserRole } from '@/app/actions/auth';
 import { cn } from '@/lib/utils';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { toast } from 'sonner';
 
 const steps = [
   { id: 'profile', label: 'Profile', icon: User },
@@ -114,11 +115,13 @@ function TenantOnboardingContent() {
     }
   };
 
+  
+    // Update the handleAgreementAccept function
   const handleAgreementAccept = async () => {
     setLoading(true);
     try {
       const token = await getToken();
-      await apiClient.post('/api/rent/agreement/tenant', {
+      await apiClient.post('/api/onboarding/agreement/tenant', {
         acceptedAt: new Date().toISOString(),
         terms: 'v1',
         ipAddress: 'client-side',
@@ -129,7 +132,8 @@ function TenantOnboardingContent() {
         acceptedAt: new Date().toISOString()
       });
     } catch (error) {
-      console.error('Agreement submission error:', error);  
+      console.error('Agreement submission error:', error);
+      toast.error('Failed to accept agreement. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -242,12 +246,13 @@ function TenantOnboardingContent() {
             </div>
           )}
 
-          {currentStep === 'agreement' && (
-            <AgreementForm
-              onAccept={handleAgreementAccept}
-              isLoading={loading}
-            />
-          )}
+            {currentStep === 'agreement' && (
+              <AgreementForm
+                role="tenant"
+                onAccept={handleAgreementAccept}
+                isLoading={loading}
+              />
+            )}
 
           {currentStep === 'complete' && (
             <div className="text-center py-8 space-y-4">

@@ -198,17 +198,18 @@ export default function PropertyDetailsPage() {
                   </div>
                 </div>
 
-                {/* WhatsApp Button */}
+                
+
+                {/* Action Buttons */}
+                {isSignedIn ? (
+                  <>
+                  {/* WhatsApp Button */}
                 <WhatsAppButton
                   phoneNumber={property.landlord?.phone || '9876543210'}
                   propertyTitle={property.title}
                   variant="default"
                   className="w-full mb-3"
                 />
-
-                {/* Action Buttons */}
-                {isSignedIn ? (
-                  <>
                     <VisitForm
                       propertyId={propertyId}
                       propertyTitle={property.title}

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-
 import { FileText, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,9 +10,10 @@ import { cn } from '@/lib/utils';
 interface AgreementFormProps {
   onAccept: () => Promise<void>;
   isLoading?: boolean;
+  role?: 'tenant' | 'landlord';
 }
 
-export function AgreementForm({ onAccept, isLoading = false }: AgreementFormProps) {
+export function AgreementForm({ onAccept, isLoading = false, role = 'landlord' }: AgreementFormProps) {
   const [accepted, setAccepted] = useState(false);
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
 
@@ -30,10 +30,16 @@ export function AgreementForm({ onAccept, isLoading = false }: AgreementFormProp
     await onAccept();
   };
 
+  const isLandlord = role === 'landlord';
+  const title = isLandlord ? "Landlord Agreement" : "Tenant Agreement";
+  const iconColor = isLandlord ? "text-purple-600" : "text-blue-600";
+  const buttonColor = isLandlord ? "bg-purple-600 hover:bg-purple-700" : "bg-blue-600 hover:bg-blue-700";
+  const acceptedBgColor = isLandlord ? "bg-purple-50 border-purple-200" : "bg-blue-50 border-blue-200";
+
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold">Landlord Agreement</h2>
+        <h2 className="text-2xl font-semibold">{title}</h2>
         <p className="text-gray-600">Please review and accept the terms and conditions</p>
       </div>
 
@@ -44,70 +50,132 @@ export function AgreementForm({ onAccept, isLoading = false }: AgreementFormProp
             onScroll={handleScroll}
           >
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <FileText className="h-5 w-5 text-purple-600" />
-              Terms and Conditions for Landlords
+              <FileText className={`h-5 w-5 ${iconColor}`} />
+              Terms and Conditions for {isLandlord ? 'Landlords' : 'Tenants'}
             </h3>
             
-            <div className="space-y-4 text-gray-600">
-              <section>
-                <h4 className="font-medium text-gray-900">1. Property Listing</h4>
-                <p>You confirm that you have the legal right to rent out the property. All property details provided must be accurate and truthful. Any misrepresentation may result in account suspension.</p>
-              </section>
+            {isLandlord ? (
+              // Landlord Terms
+              <div className="space-y-4 text-gray-600">
+                <section>
+                  <h4 className="font-medium text-gray-900">1. Property Listing</h4>
+                  <p>You confirm that you have the legal right to rent out the property. All property details provided must be accurate and truthful. Any misrepresentation may result in account suspension.</p>
+                </section>
 
-              <section>
-                <h4 className="font-medium text-gray-900">2. Verification</h4>
-                <p>You agree to provide valid identity and property ownership documents for verification. UrbanKey may verify your property details through third-party services.</p>
-              </section>
+                <section>
+                  <h4 className="font-medium text-gray-900">2. Verification</h4>
+                  <p>You agree to provide valid identity and property ownership documents for verification. UrbanKey may verify your property details through third-party services.</p>
+                </section>
 
-              <section>
-                <h4 className="font-medium text-gray-900">3. Communication</h4>
-                <p>You agree to respond to tenant inquiries within 24 hours. All communication should be professional and respectful.</p>
-              </section>
+                <section>
+                  <h4 className="font-medium text-gray-900">3. Communication</h4>
+                  <p>You agree to respond to tenant inquiries within 24 hours. All communication should be professional and respectful.</p>
+                </section>
 
-              <section>
-                <h4 className="font-medium text-gray-900">4. Fees and Commission</h4>
-                <p>You agree to our commission structure for successful rentals. Commission rates are clearly displayed during property listing and may vary based on the package chosen.</p>
-              </section>
+                <section>
+                  <h4 className="font-medium text-gray-900">4. Fees and Commission</h4>
+                  <p>You agree to our commission structure for successful rentals. Commission rates are clearly displayed during property listing and may vary based on the package chosen.</p>
+                </section>
 
-              <section>
-                <h4 className="font-medium text-gray-900">5. Tenant Screening</h4>
-                <p>While UrbanKey provides basic tenant verification, you are responsible for final tenant selection and background checks.</p>
-              </section>
+                <section>
+                  <h4 className="font-medium text-gray-900">5. Tenant Screening</h4>
+                  <p>While UrbanKey provides basic tenant verification, you are responsible for final tenant selection and background checks.</p>
+                </section>
 
-              <section>
-                <h4 className="font-medium text-gray-900">6. Rent Agreements</h4>
-                <p>All rental agreements generated through the platform are legally valid. You agree to use the platform's agreement templates or upload your own.</p>
-              </section>
+                <section>
+                  <h4 className="font-medium text-gray-900">6. Rent Agreements</h4>
+                  <p>All rental agreements generated through the platform are legally valid. You agree to use the platform's agreement templates or upload your own.</p>
+                </section>
 
-              <section>
-                <h4 className="font-medium text-gray-900">7. Dispute Resolution</h4>
-                <p>Any disputes with tenants should first be attempted to be resolved through the platform's mediation services before legal action.</p>
-              </section>
+                <section>
+                  <h4 className="font-medium text-gray-900">7. Dispute Resolution</h4>
+                  <p>Any disputes with tenants should first be attempted to be resolved through the platform's mediation services before legal action.</p>
+                </section>
 
-              <section>
-                <h4 className="font-medium text-gray-900">8. Platform Rules</h4>
-                <p>You agree not to:</p>
-                <ul className="list-disc pl-5 mt-2">
-                  <li>List fake or non-existent properties</li>
-                  <li>Discriminate against tenants based on religion, caste, or gender</li>
-                  <li>Charge tenants outside the platform without documentation</li>
-                  <li>Share contact information of other landlords</li>
-                </ul>
-              </section>
+                <section>
+                  <h4 className="font-medium text-gray-900">8. Platform Rules</h4>
+                  <p>You agree not to:</p>
+                  <ul className="list-disc pl-5 mt-2">
+                    <li>List fake or non-existent properties</li>
+                    <li>Discriminate against tenants based on religion, caste, or gender</li>
+                    <li>Charge tenants outside the platform without documentation</li>
+                    <li>Share contact information of other landlords</li>
+                  </ul>
+                </section>
 
-              <section>
-                <h4 className="font-medium text-gray-900">9. Termination</h4>
-                <p>UrbanKey reserves the right to suspend or terminate accounts that violate these terms or engage in fraudulent activities.</p>
-              </section>
+                <section>
+                  <h4 className="font-medium text-gray-900">9. Termination</h4>
+                  <p>UrbanKey reserves the right to suspend or terminate accounts that violate these terms or engage in fraudulent activities.</p>
+                </section>
 
-              <section>
-                <h4 className="font-medium text-gray-900">10. Changes to Terms</h4>
-                <p>We may update these terms periodically. Continued use of the platform constitutes acceptance of updated terms.</p>
-              </section>
-            </div>
+                <section>
+                  <h4 className="font-medium text-gray-900">10. Changes to Terms</h4>
+                  <p>We may update these terms periodically. Continued use of the platform constitutes acceptance of updated terms.</p>
+                </section>
+              </div>
+            ) : (
+              // Tenant Terms
+              <div className="space-y-4 text-gray-600">
+                <section>
+                  <h4 className="font-medium text-gray-900">1. Rental Application</h4>
+                  <p>You confirm that all information provided in your rental application is accurate and truthful. Any misrepresentation may result in application rejection or account termination.</p>
+                </section>
+
+                <section>
+                  <h4 className="font-medium text-gray-900">2. Verification</h4>
+                  <p>You agree to complete Aadhar verification and provide valid identification documents. UrbanKey will securely store and verify your documents.</p>
+                </section>
+
+                <section>
+                  <h4 className="font-medium text-gray-900">3. Rent Payments</h4>
+                  <p>You agree to pay rent on or before the due date specified in your rental agreement. Late payments may incur penalties as per the agreement terms.</p>
+                </section>
+
+                <section>
+                  <h4 className="font-medium text-gray-900">4. Security Deposit</h4>
+                  <p>The security deposit is held by the landlord and will be refunded at the end of the tenancy, subject to deductions for damages beyond normal wear and tear.</p>
+                </section>
+
+                <section>
+                  <h4 className="font-medium text-gray-900">5. Property Care</h4>
+                  <p>You agree to maintain the property in good condition, report maintenance issues promptly, and not make alterations without landlord consent.</p>
+                </section>
+
+                <section>
+                  <h4 className="font-medium text-gray-900">6. Rent Agreement</h4>
+                  <p>You agree to sign the digital rent agreement provided by UrbanKey. The agreement is legally binding once signed by both parties.</p>
+                </section>
+
+                <section>
+                  <h4 className="font-medium text-gray-900">7. Communication</h4>
+                  <p>You agree to communicate professionally with landlords and UrbanKey support. Harassment or inappropriate behavior may result in account suspension.</p>
+                </section>
+
+                <section>
+                  <h4 className="font-medium text-gray-900">8. Platform Rules</h4>
+                  <p>You agree not to:</p>
+                  <ul className="list-disc pl-5 mt-2">
+                    <li>Sublet the property without written landlord consent</li>
+                    <li>Use the property for illegal activities</li>
+                    <li>Cause disturbances to neighbors or other tenants</li>
+                    <li>Share your account credentials with others</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h4 className="font-medium text-gray-900">9. Notice Period</h4>
+                  <p>You agree to provide the required notice period (typically 30 days) before vacating the property as specified in your rental agreement.</p>
+                </section>
+
+                <section>
+                  <h4 className="font-medium text-gray-900">10. Changes to Terms</h4>
+                  <p>We may update these terms periodically. Continued use of the platform constitutes acceptance of updated terms.</p>
+                </section>
+              </div>
+            )}
 
             <p className="text-xs text-gray-500 mt-4 pt-4 border-t">
-              Last updated: March 2026 | Version 1.0
+              Last updated: April 2026 | Version 1.0
             </p>
             
             {!scrolledToBottom && (
@@ -123,7 +191,7 @@ export function AgreementForm({ onAccept, isLoading = false }: AgreementFormProp
 
       <div className={cn(
         "flex items-start gap-3 p-4 rounded-lg transition-all",
-        accepted ? "bg-purple-50 border border-purple-200" : "bg-gray-50"
+        accepted ? acceptedBgColor : "bg-gray-50"
       )}>
         <Checkbox
           id="acceptTerms"
@@ -133,8 +201,10 @@ export function AgreementForm({ onAccept, isLoading = false }: AgreementFormProp
           className="mt-1"
         />
         <label htmlFor="acceptTerms" className="text-sm text-gray-700 cursor-pointer flex-1">
-          I have read and agree to the Terms and Conditions for Landlords. I confirm that I have the 
-          legal right to rent out properties and that all information provided is accurate.
+          I have read and agree to the Terms and Conditions for {isLandlord ? 'Landlords' : 'Tenants'}. 
+          {isLandlord 
+            ? ' I confirm that I have the legal right to rent out properties and that all information provided is accurate.'
+            : ' I understand my responsibilities as a tenant and agree to abide by these terms.'}
         </label>
       </div>
 
@@ -147,7 +217,7 @@ export function AgreementForm({ onAccept, isLoading = false }: AgreementFormProp
 
       <Button 
         onClick={handleAccept} 
-        className="w-full"
+        className={`w-full ${buttonColor} text-white`}
         disabled={!accepted || isLoading}
       >
         {isLoading ? (

@@ -26,6 +26,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { apiClient } from '@/lib/api/api-client';
 import { formatCurrency } from '@/lib/utils';
+import { useLandlordVerification } from '@/hooks/useLandlordVerification';
 
 interface Agreement {
   id: string;
@@ -73,9 +74,20 @@ export default function LandlordAgreementsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
-  useEffect(() => {
-    loadAgreements();
-  }, []);
+  // Check landlord verification - redirects if not verified
+    const { isVerified, isLoading: isVerificationLoading } = useLandlordVerification(true);
+    useEffect(() => {
+      if (isVerified === true) {
+        loadAgreements();
+      }
+    }, [isVerified]);
+    // If not verified, don't render the page (hook will redirect)
+    if (!isVerified) {
+      return null;
+    }
+  
+
+ 
 
   const loadAgreements = async () => {
     setIsLoading(true);
@@ -120,7 +132,7 @@ export default function LandlordAgreementsPage() {
     totalRent: agreements.reduce((sum, a) => sum + a.monthlyRent, 0),
   };
 
-  if (isLoading) {
+  if (isLoading || isVerificationLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />

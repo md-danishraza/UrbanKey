@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { apiClient } from '@/lib/api/api-client';
+import { useLandlordVerification } from '@/hooks/useLandlordVerification';
 
 interface Property {
   id: string;
@@ -50,14 +51,24 @@ export default function PropertiesListPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null); // Track which property is being acted upon
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null); // Track which property is being confirmed for deletion
 
+  // Check landlord verification - redirects if not verified
+  const { isVerified, isLoading: isVerificationLoading } = useLandlordVerification(true);
   useEffect(() => {
-    loadProperties();
-  }, []);
+    if (isVerified === true) {
+      loadProperties();
+    }
+  }, [isVerified]);
+  // If not verified, don't render the page (hook will redirect)
+  if (!isVerified) {
+    return null;
+  }
+
+
 
   const loadProperties = async () => {
     try {
       const token = await getToken();
-      const response: any = await apiClient.get('/api/properties?landlord=me', token);
+      const response: any = await apiClient.get('/api/users/landlord/me', token);
       setProperties(response.data || []);
     } catch (error) {
       console.error('Failed to load properties:', error);
@@ -114,7 +125,7 @@ export default function PropertiesListPage() {
     return new Intl.NumberFormat('en-IN').format(amount);
   };
 
-  if (isLoading) {
+  if (isLoading || isVerificationLoading) {
     return (
       <div className="min-h-screen  bg-gradient-to-b from-rose-50 to-white py-8 px-4">
         <div className="max-w-7xl mx-auto">

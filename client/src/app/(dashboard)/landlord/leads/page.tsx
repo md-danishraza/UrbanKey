@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getLandlordLeads, updateLeadStatus, Lead } from '@/lib/api/leads';
 import { LeadCard } from '@/components/landlord/LeadCard';
+import { useLandlordVerification } from '@/hooks/useLandlordVerification';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 
 
@@ -21,9 +23,18 @@ export default function LandlordLeadsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [updating, setUpdating] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadLeads();
-  }, [statusFilter]);
+  // Check landlord verification - redirects if not verified
+        const { isVerified, isLoading: isVerificationLoading } = useLandlordVerification(true);
+        useEffect(() => {
+          if (isVerified === true) {
+            loadLeads();
+          }
+        }, [isVerified,statusFilter]);
+        // If not verified, don't render the page (hook will redirect)
+        if (!isVerified) {
+          return null;
+        }
+      
 
   const loadLeads = async () => {
     setIsLoading(true);
@@ -58,13 +69,7 @@ export default function LandlordLeadsPage() {
   };
 
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-      </div>
-    );
-  }
+  if (isLoading || isVerificationLoading) return <LoadingSpinner/>
 
   const stats = {
     total: leads.length,

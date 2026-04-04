@@ -65,10 +65,13 @@ const CardNav = ({ items }: { items: CardNavItem[] }) => {
         </button>
       </div>
 
-      {/* Scrollable Cards Container - Fixed overflow handling */}
-      <div className="absolute inset-0 overflow-y-auto overscroll-contain">
+     {/* Scrollable Cards Container - Fixed overflow handling */}
+     <div 
+        className="absolute inset-0 overflow-y-auto overscroll-contain flex flex-col"
+        data-lenis-prevent="true"
+      >
         {/* Min-height ensures it centers on large screens, but scrolls if needed on small screens */}
-        <div className="container mx-auto px-4 min-h-full flex flex-col justify-center py-24">
+        <div className="container mx-auto px-4  my-auto justify-center py-24">
           
           {/* Grid layout */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto w-full">
