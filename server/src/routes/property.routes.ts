@@ -7,7 +7,6 @@ import {
   updateProperty,
   deleteProperty,
   togglePropertyAvailability,
-  searchProperties,
   semanticSearchProperties,
   getPropertyAnalytics,
   getStats,
@@ -17,7 +16,7 @@ const router = Router();
 
 // Public routes
 router.get("/", getAllProperties);
-router.get("/search", searchProperties);
+
 router.get("/semantic", semanticSearchProperties);
 // landing hero section stats
 router.get("/stats", getStats);

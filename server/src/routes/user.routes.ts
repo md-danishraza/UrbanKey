@@ -8,6 +8,7 @@ import {
   deleteUser,
   syncUser,
   getLandlordProperties,
+  isLandlordVerified,
 } from "../controllers/user.controller.js";
 
 const router = Router();
@@ -21,9 +22,11 @@ router.get("/me", getCurrentUser);
 router.put("/me", updateUser);
 router.delete("/me", deleteUser);
 
+router.get("/landlord/me", requireAuth, getLandlordProperties);
+// is landlord verified?
+router.get("/landlord/isVerified", isLandlordVerified);
+
 // User specific routes
 router.get("/:userId", getUserById);
-
-router.get("/landlord/me", requireAuth, getLandlordProperties);
 
 export default router;

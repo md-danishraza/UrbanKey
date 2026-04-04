@@ -205,6 +205,9 @@ export const approveDocument = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    // send mail to user (user)
+    // your document is verified
+
     res.json({
       success: true,
       document,

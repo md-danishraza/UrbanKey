@@ -138,47 +138,25 @@ export const getAllProperties = async (req: Request, res: Response) => {
   }
 };
 
-// Search properties (more advanced search)
-export const searchProperties = async (req: Request, res: Response) => {
+// ✅ Add semantic search endpoint
+export const semanticSearchProperties = async (req: Request, res: Response) => {
   try {
-    const { q, city } = req.query;
+    const { q, limit = 10 } = req.query;
 
-    if (!q) {
-      return getAllProperties(req, res);
+    if (!q || typeof q !== "string") {
+      return res.status(400).json({ error: "Search query required" });
     }
 
-    const properties = await prisma.property.findMany({
-      where: {
-        OR: [
-          { title: { contains: q as string, mode: "insensitive" } },
-          { description: { contains: q as string, mode: "insensitive" } },
-          { addressLine1: { contains: q as string, mode: "insensitive" } },
-          { city: { contains: q as string, mode: "insensitive" } },
-        ],
-        ...(city && {
-          city: { contains: city as string, mode: "insensitive" },
-        }),
-        isActive: true,
-      },
-      include: {
-        images: {
-          orderBy: { sortOrder: "asc" },
-        },
-        landlord: {
-          select: {
-            id: true,
-            fullName: true,
-            avatarUrl: true,
-            isVerified: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const results = await semanticSearch(q, Number(limit));
 
-    res.json(properties);
+    res.json({
+      success: true,
+      query: q,
+      results,
+      count: results.length,
+    });
   } catch (error) {
-    console.error("Error searching properties:", error);
+    console.error("Error in semantic search:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -348,29 +326,6 @@ export const updateProperty = async (req: AuthRequest, res: Response) => {
     res.json(property);
   } catch (error) {
     console.error("Error updating property:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-// ✅ Add semantic search endpoint
-export const semanticSearchProperties = async (req: Request, res: Response) => {
-  try {
-    const { q, limit = 10 } = req.query;
-
-    if (!q || typeof q !== "string") {
-      return res.status(400).json({ error: "Search query required" });
-    }
-
-    const results = await semanticSearch(q, Number(limit));
-
-    res.json({
-      success: true,
-      query: q,
-      results,
-      count: results.length,
-    });
-  } catch (error) {
-    console.error("Error in semantic search:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
