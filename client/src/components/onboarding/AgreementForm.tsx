@@ -31,6 +31,7 @@ export function AgreementForm({ onAccept, isLoading = false, role = 'landlord' }
   };
 
   const isLandlord = role === 'landlord';
+  // console.log(isLandlord)
   const title = isLandlord ? "Landlord Agreement" : "Tenant Agreement";
   const iconColor = isLandlord ? "text-purple-600" : "text-blue-600";
   const buttonColor = isLandlord ? "bg-purple-600 hover:bg-purple-700" : "bg-blue-600 hover:bg-blue-700";

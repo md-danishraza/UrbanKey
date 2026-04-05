@@ -251,6 +251,7 @@ function TenantOnboardingContent() {
                 role="tenant"
                 onAccept={handleAgreementAccept}
                 isLoading={loading}
+                
               />
             )}
 

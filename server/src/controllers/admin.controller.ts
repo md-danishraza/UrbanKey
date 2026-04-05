@@ -3,6 +3,7 @@ import type { AuthRequest } from "../middleware/auth.middleware.js";
 import prisma from "../config/database.js";
 import { validatePropertyId } from "./property.controller.js";
 import { deletePropertyImages } from "../services/storage.service.js";
+import { clerkClient } from "./user.controller.js";
 
 // Helper function to validate ID
 const validateId = (id: string | string[] | undefined): string => {
@@ -686,6 +687,24 @@ export const updateUserRole = async (req: AuthRequest, res: Response) => {
       data: { role },
     });
 
+    // Update Clerk metadata with role
+    try {
+      await clerkClient.users.updateUser(userId, {
+        publicMetadata: {
+          role: role?.toLowerCase(),
+          syncedAt: new Date().toISOString(),
+        },
+      });
+      console.log(
+        `✅ Updated Clerk metadata for user ${userId} with role: ${
+          role?.toLowerCase() || "tenant"
+        }`
+      );
+    } catch (clerkError) {
+      console.error("Error updating Clerk metadata:", clerkError);
+      // Don't fail the request if Clerk update fails, just log it
+    }
+
     res.json({
       success: true,
       message: `User role updated to ${role}`,
@@ -750,6 +769,16 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
     await prisma.user.delete({
       where: { id: userId },
     });
+
+    // reset Clerk metadata
+    try {
+      await clerkClient.users.updateUser(userId, {
+        publicMetadata: {},
+      });
+    } catch (clerkError) {
+      console.error("Error updating Clerk metadata:", clerkError);
+      // Don't fail the request if Clerk update fails, just log it
+    }
 
     res.json({
       success: true,

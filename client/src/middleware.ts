@@ -19,6 +19,14 @@ const isPublicRoute = createRouteMatcher([
   "/auth/login(.*)",
   "/auth/register(.*)",
   "/api/webhook(.*)", // Webhooks for Clerk/Stripe/etc.
+
+  "/auth/login(.*)",
+  "/auth/register/tenant(.*)",
+  "/auth/register/landlord(.*)", // Add this!
+  "/api/clerk/metadata(.*)", // Ensure your webhooks/api can be hit
+  "/site.webmanifest", // Allow the manifest to load without logging in!
+  "/(.*)\\.png$", // Allow images
+  "/(.*)\\.ico$", // Allow favicons
 ]);
 
 // 2. Define auth routes (login/register pages)
@@ -54,44 +62,57 @@ export default clerkMiddleware(async (auth, req) => {
   if (userId) {
     const metadata =
       (sessionClaims?.publicMetadata as Record<string, any>) || {};
-    const role = (metadata.role as string)?.toLowerCase() || "tenant";
 
-    // Handle onboarding routes - allow access regardless of completion status
+    // FIX 1: Do NOT default to "tenant" immediately. Leave it undefined if it doesn't exist yet.
+    const actualRole = (metadata.role as string)?.toLowerCase();
+
+    // Handle onboarding routes
     if (isOnboardingRoute(req)) {
       const onboardingRole = req.nextUrl.pathname.split("/")[2];
 
-      // Redirect to correct onboarding if role mismatch
-      if (onboardingRole && onboardingRole !== role) {
-        return NextResponse.redirect(new URL(`/onboarding/${role}`, req.url));
+      // FIX 2: Only redirect IF they already have a defined role, AND it mismatches.
+      // If actualRole is undefined (new user), we let them through to the onboarding page they want!
+      if (actualRole && onboardingRole && onboardingRole !== actualRole) {
+        return NextResponse.redirect(
+          new URL(`/onboarding/${actualRole}`, req.url)
+        );
       }
 
       // Always allow access to onboarding - no completion checks
       return NextResponse.next();
     }
 
-    // Role-based access control for protected routes
-    // These are the ONLY routes that should be blocked by role
+    // FIX 3: For all other protected routes, NOW we can safely assume "tenant" as a fallback
+    const effectiveRole = actualRole || "tenant";
 
     // Protect Tenant Routes - only tenants and admins can access
-    if (isTenantRoute(req) && role !== "tenant" && role !== "admin") {
+    if (
+      isTenantRoute(req) &&
+      effectiveRole !== "tenant" &&
+      effectiveRole !== "admin"
+    ) {
       return NextResponse.redirect(new URL("/", req.url));
     }
 
     // Protect Landlord Routes - only landlords and admins can access
-    if (isLandlordRoute(req) && role !== "landlord" && role !== "admin") {
+    if (
+      isLandlordRoute(req) &&
+      effectiveRole !== "landlord" &&
+      effectiveRole !== "admin"
+    ) {
       return NextResponse.redirect(new URL("/", req.url));
     }
 
     // Protect Admin Routes - only admins can access
-    if (isAdminRoute(req) && role !== "admin") {
+    if (isAdminRoute(req) && effectiveRole !== "admin") {
       return NextResponse.redirect(new URL("/", req.url));
     }
 
     // check admin routes for only added admins
     if (isAdminRoute(req)) {
       const userId = sessionClaims?.sub;
-
-      const isAdmin = ADMIN_USER_IDS.includes(userId);
+      // Note: Assuming ADMIN_USER_IDS is defined at the top of your file
+      const isAdmin = ADMIN_USER_IDS.includes(userId as string);
 
       if (!isAdmin) {
         return NextResponse.redirect(new URL("/unauthorized", req.url));

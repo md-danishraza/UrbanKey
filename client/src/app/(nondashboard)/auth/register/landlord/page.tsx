@@ -1,8 +1,35 @@
-import { SignUp } from '@clerk/nextjs';
+'use client'
+import { SignUp, useUser } from '@clerk/nextjs';
 import { cn } from '@/lib/utils';
 import styles from '../../Auth.module.css';
 
+import { useEffect, useState } from 'react';
+
+
+
 export default function LandlordRegisterPage() {
+  const { user, isSignedIn } = useUser();
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    // Only run this ONCE when they successfully sign up/in
+    if (isSignedIn && user && !isSyncing) {
+      setIsSyncing(true);
+      
+      // Fire-and-forget the API call. 
+      // Clerk is already redirecting the user, so we just make sure this request 
+      // survives the page navigation using keepalive!
+      fetch('/api/clerk/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          role: 'landlord',
+        }),
+        keepalive: true, // <--- THIS is the magic fix
+      }).catch((err) => console.error('Failed to set landlord role:', err));
+    }
+  }, [isSignedIn, user, isSyncing]);
   return (
     <div className={cn(
       styles.authContainer, 

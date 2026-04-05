@@ -4,7 +4,7 @@ import { createClerkClient } from "@clerk/backend";
 import prisma from "../config/database.js";
 
 // Initialize the Clerk client using your environment variable
-const clerkClient = createClerkClient({
+export const clerkClient = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY!,
 });
 
@@ -25,35 +25,14 @@ export const syncUser = async (req: AuthRequest, res: Response) => {
     }
 
     // Notice we use fullName instead of firstName/lastName based on your schema
-    const { email, fullName, avatarUrl, role } = req.body;
+    const { email, fullName, avatarUrl, role, phone } = req.body;
 
-    // Parse name for Clerk (firstName and lastName)
-    const firstName = fullName?.split(" ")[0] || "";
-    const lastName = fullName?.split(" ").slice(1).join(" ") || "";
+    // console.log(phone);
 
-    // Update Clerk metadata with role
-    try {
-      await clerkClient.users.updateUser(userId, {
-        firstName,
-        lastName,
-        // Note: Newer Clerk SDKs may ignore external profileImageUrl updates.
-        // If this throws, you may need to remove it.
-        ...(email && { emailAddress: [email] }),
-        ...(avatarUrl && { profileImageUrl: avatarUrl }),
-        publicMetadata: {
-          role: role?.toLowerCase() || "tenant",
-          syncedAt: new Date().toISOString(),
-        },
-      });
-      console.log(
-        `✅ Updated Clerk metadata for user ${userId} with role: ${
-          role?.toLowerCase() || "tenant"
-        }`
-      );
-    } catch (clerkError) {
-      console.error("Error updating Clerk metadata:", clerkError);
-      // Don't fail the request if Clerk update fails, just log it
-    }
+    // Check if user exists first
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId },
+    });
 
     // UPSERT: Updates the user if they exist, Creates them if they don't
     const user = await prisma.user.upsert({
@@ -61,8 +40,10 @@ export const syncUser = async (req: AuthRequest, res: Response) => {
       update: {
         fullName,
         avatarUrl,
-        role: role?.toUpperCase() || "TENANT",
+        // Don't override role if user already exists
+        role: existingUser?.role || role?.toUpperCase() || "TENANT",
         // We don't update email here to prevent overwriting
+        phone: phone,
       },
       create: {
         id: userId,
@@ -72,6 +53,35 @@ export const syncUser = async (req: AuthRequest, res: Response) => {
         role: role?.toUpperCase() || "TENANT",
       },
     });
+
+    //  // Parse name for Clerk (firstName and lastName)
+    //  const firstName = fullName?.split(" ")[0] || "";
+    //  const lastName = fullName?.split(" ").slice(1).join(" ") || "";
+
+    // already implemented via nextjs api routes
+    // // Update Clerk metadata with role
+    // try {
+    //   await clerkClient.users.updateUser(userId, {
+    //     firstName,
+    //     lastName,
+    //     // Note: Newer Clerk SDKs may ignore external profileImageUrl updates.
+    //     // If this throws, you may need to remove it.
+    //     ...(email && { emailAddress: [email] }),
+    //     ...(avatarUrl && { profileImageUrl: avatarUrl }),
+    //     publicMetadata: {
+    //       role: role?.toLowerCase() || "tenant",
+    //       syncedAt: new Date().toISOString(),
+    //     },
+    //   });
+    //   console.log(
+    //     `✅ Updated Clerk metadata for user ${userId} with role: ${
+    //       role?.toLowerCase() || "tenant"
+    //     }`
+    //   );
+    // } catch (clerkError) {
+    //   console.error("Error updating Clerk metadata:", clerkError);
+    //   // Don't fail the request if Clerk update fails, just log it
+    // }
 
     res.json(user);
   } catch (error) {
