@@ -26,6 +26,7 @@ import paymentRoutes from "./routes/payment.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
 import { securityHeaders } from "./middleware/securityHeaders.middleware.js";
+import swaggerRoutes from "./routes/swagger.routes.js";
 
 dotenv.config();
 
@@ -129,6 +130,20 @@ if (isProduction) {
 // 8. Body parsing with size limits
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// ==================== API DOCUMENTATION ====================
+
+// if (process.env.NODE_ENV === 'production') {
+//   app.use('/api/docs', (req, res, next) => {
+//     // Only allow specific IPs or require admin authentication
+//     const adminIp = process.env.ADMIN_IP || '127.0.0.1';
+//     if (req.ip !== adminIp) {
+//       return res.status(403).json({ error: 'Access denied' });
+//     }
+//     next();
+//   });
+// }
+app.use("/api", swaggerRoutes);
 
 // 9. Special handling for webhook raw body (no parsing)
 app.use("/api/auth/webhook", express.raw({ type: "application/json" }));
