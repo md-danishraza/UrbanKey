@@ -61,6 +61,7 @@
     width: 90vw;
     max-width: 400px;
     height: 600px;
+
     background: linear-gradient(135deg, #111827, #1f2937);
     border-radius: 1.5rem;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -72,8 +73,8 @@
   }
   
   .chatModalMinimized {
-    height: auto;
-    max-height: 80px;
+    height: auto !important;
+
   }
   
   /* Header */
@@ -526,24 +527,35 @@
   }
   
   /* Responsive */
-  @media (max-width: 640px) {
-    .chatModal {
-      width: calc(100vw - 2rem);
-      right: 1rem;
-      bottom: 1rem;
-      height: calc(100vh - 2rem);
-      max-height: 600px;
-    }
-    
-    .messageBubble {
-      max-width: 85%;
-    }
+  /* Responsive */
+@media (max-width: 640px) {
+  /* Only force full height if it is NOT minimized */
+  .chatModal:not(.chatModalMinimized) {
+    width: calc(100vw - 2rem);
+    right: 1rem;
+    bottom: 1rem;
+    height: calc(100vh - 2rem);
+    max-height: 600px;
   }
+  
+  /* Keep the width proper when it IS minimized on mobile */
+  .chatModal.chatModalMinimized {
+    width: calc(100vw - 2rem);
+    right: 1rem;
+    bottom: 1rem;
+  }
+  
+  .messageBubble {
+    max-width: 85%;
+  }
+}
   
   /* Minimized State */
   .minimizedContent {
     padding: 1rem;
     text-align: center;
+    height: 80px;
+ 
     color: #9ca3af;
     font-size: 0.875rem;
   }

@@ -11,6 +11,17 @@ export interface AuthRequest extends Request {
   };
 }
 
+/**
+ * Authentication Middleware
+ * Verifies JWT token from Clerk and attaches user info to request
+ *
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Next middleware function
+ *
+ * @throws 401 - Missing or invalid token
+ * @throws 401 - Token verification failed
+ */
 export const requireAuth = async (
   req: AuthRequest,
   res: Response,
@@ -72,6 +83,15 @@ export const requireAuth = async (
   }
 };
 
+/**
+ * Role-Based Access Middleware
+ * Checks if user has required role(s)
+ *
+ * @param roles - Array of allowed roles
+ * @returns Express middleware function
+ *
+ * @throws 403 - Insufficient permissions
+ */
 // Role-based middleware helpers
 export const requireRole = (roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {

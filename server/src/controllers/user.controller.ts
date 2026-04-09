@@ -16,81 +16,12 @@ const validateUserId = (userId: string | string[] | undefined): string => {
   return userId;
 };
 
-// sync users with Clerk metadata update
-export const syncUser = async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.auth?.userId;
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+// ==================== USER MANAGEMENT ====================
 
-    // Notice we use fullName instead of firstName/lastName based on your schema
-    const { email, fullName, avatarUrl, role, phone } = req.body;
-
-    // console.log(phone);
-
-    // Check if user exists first
-    const existingUser = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    // UPSERT: Updates the user if they exist, Creates them if they don't
-    const user = await prisma.user.upsert({
-      where: { id: userId },
-      update: {
-        fullName,
-        avatarUrl,
-        // Don't override role if user already exists
-        role: existingUser?.role || role?.toUpperCase() || "TENANT",
-        // We don't update email here to prevent overwriting
-        phone: phone,
-      },
-      create: {
-        id: userId,
-        email,
-        fullName,
-        avatarUrl,
-        role: role?.toUpperCase() || "TENANT",
-      },
-    });
-
-    //  // Parse name for Clerk (firstName and lastName)
-    //  const firstName = fullName?.split(" ")[0] || "";
-    //  const lastName = fullName?.split(" ").slice(1).join(" ") || "";
-
-    // already implemented via nextjs api routes
-    // // Update Clerk metadata with role
-    // try {
-    //   await clerkClient.users.updateUser(userId, {
-    //     firstName,
-    //     lastName,
-    //     // Note: Newer Clerk SDKs may ignore external profileImageUrl updates.
-    //     // If this throws, you may need to remove it.
-    //     ...(email && { emailAddress: [email] }),
-    //     ...(avatarUrl && { profileImageUrl: avatarUrl }),
-    //     publicMetadata: {
-    //       role: role?.toLowerCase() || "tenant",
-    //       syncedAt: new Date().toISOString(),
-    //     },
-    //   });
-    //   console.log(
-    //     `✅ Updated Clerk metadata for user ${userId} with role: ${
-    //       role?.toLowerCase() || "tenant"
-    //     }`
-    //   );
-    // } catch (clerkError) {
-    //   console.error("Error updating Clerk metadata:", clerkError);
-    //   // Don't fail the request if Clerk update fails, just log it
-    // }
-
-    res.json(user);
-  } catch (error) {
-    console.error("Error syncing user:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-// Rest of your existing controller functions...
+/**
+ * GET /api/users/me
+ * Get current authenticated user's profile
+ */
 export const getCurrentUser = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.auth?.userId;
@@ -109,6 +40,10 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
         },
         visits: true,
         leads: true,
+        documents: true,
+        landlordAgreement: true,
+        tenantAgreement: true,
+        onboardingProgress: true,
       },
     });
 
@@ -116,13 +51,20 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    res.json(user);
+    res.json({
+      success: true,
+      data: user,
+    });
   } catch (error) {
     console.error("Error fetching current user:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
+/**
+ * GET /api/users/:userId
+ * Get user by ID (requires admin or self)
+ */
 export const getUserById = async (req: AuthRequest, res: Response) => {
   try {
     const requestingUserId = req.auth?.userId;
@@ -130,7 +72,6 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Validate and extract userId from params
     let targetUserId: string;
     try {
       targetUserId = validateUserId(req.params.userId);
@@ -140,7 +81,6 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
 
     // Only allow users to view their own profile unless admin
     if (targetUserId !== requestingUserId) {
-      // Check if user is admin
       const requestingUser = await prisma.user.findUnique({
         where: { id: requestingUserId },
       });
@@ -161,6 +101,7 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
         },
         visits: true,
         leads: true,
+        documents: true,
       },
     });
 
@@ -168,13 +109,20 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    res.json(user);
+    res.json({
+      success: true,
+      data: user,
+    });
   } catch (error) {
     console.error("Error fetching user:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
+/**
+ * PUT /api/users/me
+ * Update current user's profile (for profile management page)
+ */
 export const updateUser = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.auth?.userId;
@@ -182,39 +130,53 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { fullName, phone, avatarUrl } = req.body;
+    const { fullName, phone, avatarUrl, email } = req.body;
 
     // Update Clerk metadata as well
     try {
       const firstName = fullName?.split(" ")[0] || "";
       const lastName = fullName?.split(" ").slice(1).join(" ") || "";
 
-      await clerkClient.users.updateUser(userId, {
+      const updateData: any = {
         firstName,
         lastName,
-        // Same note as above regarding profileImageUrl
-        ...(avatarUrl && { profileImageUrl: avatarUrl }),
-      });
+      };
+
+      if (avatarUrl) {
+        updateData.profileImageUrl = avatarUrl;
+      }
+
+      await clerkClient.users.updateUser(userId, updateData);
     } catch (clerkError) {
       console.error("Error updating Clerk user:", clerkError);
     }
 
+    // Update database
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
         fullName,
         phone,
         avatarUrl,
+        ...(email && { email }),
       },
     });
 
-    res.json(updatedUser);
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      data: updatedUser,
+    });
   } catch (error) {
     console.error("Error updating user:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
+/**
+ * DELETE /api/users/me
+ * Delete current user's account
+ */
 export const deleteUser = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.auth?.userId;
@@ -222,18 +184,92 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Optional: Check if user has active properties/leases before deleting
+    // Check for active agreements before deletion
+    const activeAgreements = await prisma.rentalAgreement.findFirst({
+      where: {
+        OR: [
+          { tenantId: userId, status: "ACTIVE" },
+          { landlordId: userId, status: "ACTIVE" },
+        ],
+      },
+    });
+
+    if (activeAgreements) {
+      return res.status(400).json({
+        error: "Cannot delete account",
+        message:
+          "You have active rental agreements. Please resolve them before deleting your account.",
+      });
+    }
+
     await prisma.user.delete({
       where: { id: userId },
     });
 
-    res.json({ message: "User deleted successfully" });
+    res.json({
+      success: true,
+      message: "User account deleted successfully",
+    });
   } catch (error) {
     console.error("Error deleting user:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
+// ==================== USER SYNC ====================
+
+/**
+ * POST /api/users/sync
+ * Sync user with Clerk metadata
+ */
+export const syncUser = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { email, fullName, avatarUrl, role, phone } = req.body;
+
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    const user = await prisma.user.upsert({
+      where: { id: userId },
+      update: {
+        fullName,
+        avatarUrl,
+        role: existingUser?.role || role?.toUpperCase() || "TENANT",
+        phone: phone,
+      },
+      create: {
+        id: userId,
+        email,
+        fullName,
+        avatarUrl,
+        role: role?.toUpperCase() || "TENANT",
+        phone,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: "User synced successfully",
+      data: user,
+    });
+  } catch (error) {
+    console.error("Error syncing user:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ==================== LANDLORD SPECIFIC ====================
+
+/**
+ * GET /api/users/landlord/me
+ * Get landlord's properties with analytics
+ */
 export const getLandlordProperties = async (
   req: AuthRequest,
   res: Response
@@ -254,7 +290,6 @@ export const getLandlordProperties = async (
       orderBy: { createdAt: "desc" },
     });
 
-    // Get view counts for each property
     const propertiesWithViews = await Promise.all(
       properties.map(async (property) => {
         const views = await prisma.analyticsEvent.count({
@@ -286,7 +321,10 @@ export const getLandlordProperties = async (
   }
 };
 
-// Check if landlord is verified
+/**
+ * GET /api/users/landlord/isVerified
+ * Check if landlord is verified
+ */
 export const isLandlordVerified = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.auth?.userId;
@@ -320,6 +358,77 @@ export const isLandlordVerified = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Error checking landlord verification:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ==================== PROFILE MANAGEMENT (For Future Implementation) ====================
+
+/**
+ * GET /api/users/me/documents
+ * Get user's uploaded documents (for profile page)
+ */
+export const getUserDocuments = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const documents = await prisma.userDocument.findMany({
+      where: { userId },
+      orderBy: { uploadedAt: "desc" },
+    });
+
+    res.json({
+      success: true,
+      data: documents,
+    });
+  } catch (error) {
+    console.error("Error fetching user documents:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * GET /api/users/me/agreements
+ * Get user's rental agreements (for profile page)
+ */
+export const getUserAgreements = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        agreementsAsTenant: {
+          include: {
+            property: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        agreementsAsLandlord: {
+          include: {
+            property: true,
+            tenant: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        asTenant: user?.agreementsAsTenant || [],
+        asLandlord: user?.agreementsAsLandlord || [],
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching user agreements:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

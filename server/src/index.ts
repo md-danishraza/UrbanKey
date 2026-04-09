@@ -27,6 +27,7 @@ import chatRoutes from "./routes/chat.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
 import { securityHeaders } from "./middleware/securityHeaders.middleware.js";
 import swaggerRoutes from "./routes/swagger.routes.js";
+import healthRoutes from "./routes/health.routes.js";
 
 dotenv.config();
 
@@ -145,6 +146,9 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // }
 app.use("/api", swaggerRoutes);
 
+// ==================== HEALTH CHECK ====================
+app.use("/api", healthRoutes);
+
 // 9. Special handling for webhook raw body (no parsing)
 app.use("/api/auth/webhook", express.raw({ type: "application/json" }));
 
@@ -171,16 +175,6 @@ app.use("/api/rent/agreements", agreementRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/contact", contactRoutes);
-
-// ==================== HEALTH CHECK ====================
-app.get("/health", (req, res) => {
-  res.json({
-    status: "OK",
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
-    uptime: process.uptime(),
-  });
-});
 
 // ==================== ERROR HANDLERS ====================
 app.use(errorHandler);

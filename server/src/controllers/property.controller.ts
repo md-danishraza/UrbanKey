@@ -1,13 +1,19 @@
 import type { Request, Response } from "express";
 import type { AuthRequest } from "../middleware/auth.middleware.js";
 import prisma from "../config/database.js";
-
 import {
   upsertPropertyEmbedding,
   semanticSearch,
 } from "../services/embedding.service.js";
 
-// Helper function to validate and extract property ID from params
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Validates and extracts property ID from request params
+ * @param propertyId - The property ID from request params
+ * @returns Validated property ID string
+ * @throws Error if ID is invalid
+ */
 export const validatePropertyId = (
   propertyId: string | string[] | undefined
 ): string => {
@@ -17,7 +23,12 @@ export const validatePropertyId = (
   return propertyId;
 };
 
-// Get all properties with optional filtering
+// ==================== PUBLIC ROUTES ====================
+
+/**
+ * GET /api/properties
+ * Get all properties with optional filtering and pagination
+ */
 export const getAllProperties = async (req: Request, res: Response) => {
   try {
     const {
@@ -44,6 +55,7 @@ export const getAllProperties = async (req: Request, res: Response) => {
       isActive: true,
     };
 
+    // Apply filters
     if (city) {
       where.city = { contains: city as string, mode: "insensitive" };
     }
@@ -54,7 +66,7 @@ export const getAllProperties = async (req: Request, res: Response) => {
       if (maxRent) where.rent.lte = Number(maxRent);
     }
 
-    // Fix BHK filter - map frontend values to enum values
+    // BHK filter mapping
     if (bhk) {
       const bhkArray = (bhk as string).split(",");
       const bhkMapping: Record<string, string> = {
@@ -67,7 +79,7 @@ export const getAllProperties = async (req: Request, res: Response) => {
       where.bhk = { in: mappedBhk };
     }
 
-    // Fix furnishing filter - map frontend values to enum values
+    // Furnishing filter mapping
     if (furnishing) {
       const furnishingArray = (furnishing as string).split(",");
       const furnishingMapping: Record<string, string> = {
@@ -81,7 +93,7 @@ export const getAllProperties = async (req: Request, res: Response) => {
       where.furnishing = { in: mappedFurnishing };
     }
 
-    // Fix tenantType filter - map frontend values to enum values
+    // Tenant type filter mapping
     if (tenantType) {
       const tenantMapping: Record<string, string> = {
         family: "FAMILY",
@@ -91,14 +103,14 @@ export const getAllProperties = async (req: Request, res: Response) => {
       where.tenantType = tenantMapping[tenantType as string] || tenantType;
     }
 
+    // Boolean filters
     if (hasWater247 === "true") where.hasWater247 = true;
     if (hasPowerBackup === "true") where.hasPowerBackup = true;
     if (hasIglPipeline === "true") where.hasIglPipeline = true;
     if (isDirectOwner === "true") where.isBroker = false;
     if (nearbyMetro === "true") where.distanceToMetroKm = { not: null };
 
-    // console.log("Where clause:", JSON.stringify(where, null, 2));
-
+    // Execute queries in parallel
     const [properties, total] = await Promise.all([
       prisma.property.findMany({
         where,
@@ -138,13 +150,28 @@ export const getAllProperties = async (req: Request, res: Response) => {
   }
 };
 
-// ✅ Add semantic search endpoint
+/**
+ * GET /api/properties/semantic
+ * AI-powered semantic search using vector embeddings
+ */
 export const semanticSearchProperties = async (req: Request, res: Response) => {
   try {
     const { q, limit = 10 } = req.query;
 
+    // Validate search query
     if (!q || typeof q !== "string") {
-      return res.status(400).json({ error: "Search query required" });
+      return res.status(400).json({
+        error: "Search query required",
+        message:
+          "Please provide a search query (e.g., 'spacious 2BHK near metro')",
+      });
+    }
+
+    if (q.length < 3) {
+      return res.status(400).json({
+        error: "Search query too short",
+        message: "Search query must be at least 3 characters",
+      });
     }
 
     const results = await semanticSearch(q, Number(limit));
@@ -157,18 +184,27 @@ export const semanticSearchProperties = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error in semantic search:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to perform semantic search. Please try again.",
+    });
   }
 };
 
-// Get single property by ID
+/**
+ * GET /api/properties/:id
+ * Get single property by ID with analytics tracking
+ */
 export const getPropertyById = async (req: Request, res: Response) => {
   try {
     let propertyId: string;
     try {
       propertyId = validatePropertyId(req.params.id);
     } catch (error) {
-      return res.status(400).json({ error: "Invalid property ID format" });
+      return res.status(400).json({
+        error: "Invalid property ID format",
+        message: "Property ID must be a valid string",
+      });
     }
 
     const property = await prisma.property.findUnique({
@@ -192,42 +228,113 @@ export const getPropertyById = async (req: Request, res: Response) => {
     });
 
     if (!property) {
-      return res.status(404).json({ error: "Property not found" });
+      return res.status(404).json({
+        error: "Property not found",
+        message: `Property with ID ${propertyId} does not exist`,
+      });
     }
 
-    // Track view for analytics
-    await prisma.analyticsEvent.create({
-      data: {
-        eventType: "property_view",
-        propertyId: property.id,
-      },
-    });
+    // Track view for analytics (async, don't await)
+    prisma.analyticsEvent
+      .create({
+        data: {
+          eventType: "property_view",
+          propertyId: property.id,
+        },
+      })
+      .catch((err) => console.error("Failed to track view:", err));
 
     res.json(property);
   } catch (error) {
     console.error("Error fetching property:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to fetch property details",
+    });
   }
 };
 
-// Create new property (landlord only)
+/**
+ * GET /api/properties/stats
+ * Get platform statistics for landing page
+ */
+export const getStats = async (req: Request, res: Response) => {
+  try {
+    const [totalProperties, totalTenants, totalLandlords, totalAgreements] =
+      await Promise.all([
+        prisma.property.count({ where: { isActive: true } }),
+        prisma.user.count({ where: { role: "TENANT" } }),
+        prisma.user.count({ where: { role: "LANDLORD" } }),
+        prisma.rentalAgreement.count({ where: { status: "ACTIVE" } }),
+      ]);
+
+    res.json({
+      totalProperties,
+      totalTenants,
+      totalLandlords,
+      totalAgreements,
+    });
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to fetch platform statistics",
+    });
+  }
+};
+
+// ==================== PROTECTED ROUTES (Require Authentication) ====================
+
+/**
+ * POST /api/properties
+ * Create a new property listing (Landlord or Admin only)
+ */
 export const createProperty = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.auth?.userId;
     if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Authentication required to create property",
+      });
     }
 
-    // Check if user exists and has landlord role
+    // Check if user exists
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
 
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({
+        error: "User not found",
+        message: "User account does not exist",
+      });
     }
 
-    // If user is tenant, we might want to upgrade them to landlord
+    // Validate required fields
+    const requiredFields = [
+      "title",
+      "bhk",
+      "rent",
+      "furnishing",
+      "tenantType",
+      "addressLine1",
+      "city",
+      "state",
+      "pincode",
+    ];
+    const missingFields = requiredFields.filter((field) => !req.body[field]);
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: "Missing required fields",
+        message: `The following fields are required: ${missingFields.join(
+          ", "
+        )}`,
+      });
+    }
+
+    // Upgrade tenant to landlord if needed
     if (user.role === "TENANT") {
       await prisma.user.update({
         where: { id: userId },
@@ -256,8 +363,13 @@ export const createProperty = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    // ✅ Generate and store embedding for the property
-    await upsertPropertyEmbedding(property.id);
+    // Generate and store embedding for the property (async, don't block response)
+    upsertPropertyEmbedding(property.id).catch((err) =>
+      console.error(
+        `Failed to generate embedding for property ${property.id}:`,
+        err
+      )
+    );
 
     // Track creation for analytics
     await prisma.analyticsEvent.create({
@@ -268,26 +380,42 @@ export const createProperty = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    res.status(201).json(property);
+    res.status(201).json({
+      success: true,
+      message: "Property created successfully",
+      data: property,
+    });
   } catch (error) {
     console.error("Error creating property:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to create property. Please try again.",
+    });
   }
 };
 
-// Update property
+/**
+ * PUT /api/properties/:id
+ * Update an existing property (Landlord or Admin only)
+ */
 export const updateProperty = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.auth?.userId;
     if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Authentication required to update property",
+      });
     }
 
     let propertyId: string;
     try {
       propertyId = validatePropertyId(req.params.id);
     } catch (error) {
-      return res.status(400).json({ error: "Invalid property ID format" });
+      return res.status(400).json({
+        error: "Invalid property ID format",
+        message: "Property ID must be a valid string",
+      });
     }
 
     // Check if property exists and belongs to user
@@ -296,16 +424,22 @@ export const updateProperty = async (req: AuthRequest, res: Response) => {
     });
 
     if (!existingProperty) {
-      return res.status(404).json({ error: "Property not found" });
+      return res.status(404).json({
+        error: "Property not found",
+        message: `Property with ID ${propertyId} does not exist`,
+      });
     }
 
+    // Authorization check
     if (existingProperty.landlordId !== userId) {
-      // Check if admin
       const user = await prisma.user.findUnique({
         where: { id: userId },
       });
       if (user?.role !== "ADMIN") {
-        return res.status(403).json({ error: "Forbidden" });
+        return res.status(403).json({
+          error: "Forbidden",
+          message: "You don't have permission to update this property",
+        });
       }
     }
 
@@ -320,29 +454,187 @@ export const updateProperty = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    // ✅ Regenerate embedding after update
-    await upsertPropertyEmbedding(property.id);
+    // Regenerate embedding after update
+    upsertPropertyEmbedding(property.id).catch((err) =>
+      console.error(
+        `Failed to regenerate embedding for property ${property.id}:`,
+        err
+      )
+    );
 
-    res.json(property);
+    res.json({
+      success: true,
+      message: "Property updated successfully",
+      data: property,
+    });
   } catch (error) {
     console.error("Error updating property:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to update property. Please try again.",
+    });
   }
 };
 
-// ✅ Add property analytics endpoint
-export const getPropertyAnalytics = async (req: AuthRequest, res: Response) => {
+/**
+ * DELETE /api/properties/:id
+ * Delete a property (Landlord or Admin only)
+ */
+export const deleteProperty = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.auth?.userId;
     if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Authentication required to delete property",
+      });
     }
 
     let propertyId: string;
     try {
       propertyId = validatePropertyId(req.params.id);
     } catch (error) {
-      return res.status(400).json({ error: "Invalid property ID format" });
+      return res.status(400).json({
+        error: "Invalid property ID format",
+        message: "Property ID must be a valid string",
+      });
+    }
+
+    // Check if property exists and belongs to user
+    const existingProperty = await prisma.property.findUnique({
+      where: { id: propertyId },
+    });
+
+    if (!existingProperty) {
+      return res.status(404).json({
+        error: "Property not found",
+        message: `Property with ID ${propertyId} does not exist`,
+      });
+    }
+
+    // Authorization check
+    if (existingProperty.landlordId !== userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+      if (user?.role !== "ADMIN") {
+        return res.status(403).json({
+          error: "Forbidden",
+          message: "You don't have permission to delete this property",
+        });
+      }
+    }
+
+    // Delete property (cascade will handle related records)
+    await prisma.property.delete({
+      where: { id: propertyId },
+    });
+
+    res.json({
+      success: true,
+      message: "Property deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting property:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to delete property. Please try again.",
+    });
+  }
+};
+
+/**
+ * PATCH /api/properties/:id/toggle
+ * Toggle property availability (activate/deactivate)
+ */
+export const togglePropertyAvailability = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Authentication required to toggle property status",
+      });
+    }
+
+    let propertyId: string;
+    try {
+      propertyId = validatePropertyId(req.params.id);
+    } catch (error) {
+      return res.status(400).json({
+        error: "Invalid property ID format",
+        message: "Property ID must be a valid string",
+      });
+    }
+
+    // Check if property exists and belongs to user
+    const existingProperty = await prisma.property.findUnique({
+      where: { id: propertyId },
+    });
+
+    if (!existingProperty) {
+      return res.status(404).json({
+        error: "Property not found",
+        message: `Property with ID ${propertyId} does not exist`,
+      });
+    }
+
+    if (existingProperty.landlordId !== userId) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You don't have permission to modify this property",
+      });
+    }
+
+    // Toggle isActive
+    const property = await prisma.property.update({
+      where: { id: propertyId },
+      data: {
+        isActive: !existingProperty.isActive,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: `Property ${
+        property.isActive ? "activated" : "deactivated"
+      } successfully`,
+      isActive: property.isActive,
+    });
+  } catch (error) {
+    console.error("Error toggling property availability:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to toggle property status. Please try again.",
+    });
+  }
+};
+
+/**
+ * GET /api/properties/:id/analytics
+ * Get property analytics (views, leads, visits) - Landlord only
+ */
+export const getPropertyAnalytics = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Authentication required to view analytics",
+      });
+    }
+
+    let propertyId: string;
+    try {
+      propertyId = validatePropertyId(req.params.id);
+    } catch (error) {
+      return res.status(400).json({
+        error: "Invalid property ID format",
+        message: "Property ID must be a valid string",
+      });
     }
 
     // Verify property ownership
@@ -351,11 +643,18 @@ export const getPropertyAnalytics = async (req: AuthRequest, res: Response) => {
     });
 
     if (!property) {
-      return res.status(404).json({ error: "Property not found" });
+      return res.status(404).json({
+        error: "Property not found",
+        message: `Property with ID ${propertyId} does not exist`,
+      });
     }
 
     if (property.landlordId !== userId) {
-      return res.status(403).json({ error: "Forbidden" });
+      return res.status(403).json({
+        error: "Forbidden",
+        message:
+          "You don't have permission to view analytics for this property",
+      });
     }
 
     // Get analytics data
@@ -374,12 +673,11 @@ export const getPropertyAnalytics = async (req: AuthRequest, res: Response) => {
       }),
     ]);
 
-    // Get daily views for last 7 days - GROUP BY DATE only
+    // Get daily views for last 7 days
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    // Using raw SQL to group by date
     const dailyViews = await prisma.$queryRaw<
       Array<{ date: Date; count: bigint }>
     >`
@@ -395,7 +693,6 @@ export const getPropertyAnalytics = async (req: AuthRequest, res: Response) => {
       ORDER BY DATE("created_at") DESC
     `;
 
-    // Format the response
     const formattedDailyViews = dailyViews.map((d) => ({
       date: d.date.toISOString(),
       count: Number(d.count),
@@ -412,126 +709,9 @@ export const getPropertyAnalytics = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Error fetching property analytics:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-// Delete property
-export const deleteProperty = async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.auth?.userId;
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    let propertyId: string;
-    try {
-      propertyId = validatePropertyId(req.params.id);
-    } catch (error) {
-      return res.status(400).json({ error: "Invalid property ID format" });
-    }
-
-    // Check if property exists and belongs to user
-    const existingProperty = await prisma.property.findUnique({
-      where: { id: propertyId },
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to fetch property analytics",
     });
-
-    if (!existingProperty) {
-      return res.status(404).json({ error: "Property not found" });
-    }
-
-    if (existingProperty.landlordId !== userId) {
-      // Check if admin
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-      });
-      if (user?.role !== "ADMIN") {
-        return res.status(403).json({ error: "Forbidden" });
-      }
-    }
-
-    // Delete property (cascade will handle related records)
-    await prisma.property.delete({
-      where: { id: propertyId },
-    });
-
-    res.json({ message: "Property deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting property:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-// Toggle property availability (active/inactive)
-export const togglePropertyAvailability = async (
-  req: AuthRequest,
-  res: Response
-) => {
-  try {
-    const userId = req.auth?.userId;
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    let propertyId: string;
-    try {
-      propertyId = validatePropertyId(req.params.id);
-    } catch (error) {
-      return res.status(400).json({ error: "Invalid property ID format" });
-    }
-
-    // Check if property exists and belongs to user
-    const existingProperty = await prisma.property.findUnique({
-      where: { id: propertyId },
-    });
-
-    if (!existingProperty) {
-      return res.status(404).json({ error: "Property not found" });
-    }
-
-    if (existingProperty.landlordId !== userId) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-
-    // Toggle isActive
-    const property = await prisma.property.update({
-      where: { id: propertyId },
-      data: {
-        isActive: !existingProperty.isActive,
-      },
-    });
-
-    res.json({
-      message: `Property ${
-        property.isActive ? "activated" : "deactivated"
-      } successfully`,
-      isActive: property.isActive,
-    });
-  } catch (error) {
-    console.error("Error toggling property availability:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-// gets stats for landing\
-export const getStats = async (req: Request, res: Response) => {
-  try {
-    const [totalProperties, totalTenants, totalLandlords, totalAgreements] =
-      await Promise.all([
-        prisma.property.count({ where: { isActive: true } }),
-        prisma.user.count({ where: { role: "TENANT" } }),
-        prisma.user.count({ where: { role: "LANDLORD" } }),
-        prisma.rentalAgreement.count({ where: { status: "ACTIVE" } }),
-      ]);
-
-    res.json({
-      totalProperties,
-      totalTenants,
-      totalLandlords,
-      totalAgreements,
-    });
-  } catch (error) {
-    console.error("Error fetching stats:", error);
-    res.status(500).json({ error: "Internal server error" });
   }
 };
