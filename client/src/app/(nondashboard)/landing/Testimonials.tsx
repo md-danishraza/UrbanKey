@@ -83,17 +83,11 @@ export default function Testimonials() {
         {/* Scroll Stack Testimonials */}
         <div className="relative min-h-[700px]">
           <ScrollStack
-            itemDistance={80}
-            itemScale={0.05}
-            itemStackDistance={25}
-            stackPosition="30%"
-            scaleEndPosition="20%"
-            baseScale={0.85}
-            rotationAmount={0}
-            blurAmount={0}
-            useWindowScroll={true}
+            itemScale={0.05}      /* How much each card shrinks as it stacks */
+            stackOffset={80}      /* The distance from the top of the screen where cards pin */
+            useWindowScroll={true} 
           >
-            {testimonials.map((testimonial) => (
+           {testimonials.map((testimonial) => (
               <ScrollStackItem key={testimonial.id}>
                 <TestimonialCard testimonial={testimonial} />
               </ScrollStackItem>
@@ -101,6 +95,7 @@ export default function Testimonials() {
           </ScrollStack>
         </div>
 
+            
 
         {/* Stats Badge */}
         <motion.div

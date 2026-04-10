@@ -19,3 +19,6 @@ UrbanKey uses Clerk for authentication. The authentication flow is as follows:
 ## Webhook Sync
 
 Clerk sends webhook events to keep your database in sync:
+
+Without RAG: AI guesses based on general knowledge
+With RAG: AI searches your database → Finds relevant properties → Answers based on actual data

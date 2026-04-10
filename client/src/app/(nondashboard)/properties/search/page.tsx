@@ -13,6 +13,7 @@ import { SearchFilters } from '@/types/property';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { AntigravityBackground } from '@/components/common/AntigravityBackground';
+import { cn } from '@/lib/utils';
 
 // Default filter values
 const defaultFilters: SearchFilters = {
@@ -281,19 +282,22 @@ export default function PropertiesSearchPage() {
 
             {/* Pagination */}
             {!isSemanticSearch && totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-8 pt-6 border-t border-gray-700">
+              <div className="flex justify-center items-center gap-2 mt-8 pt-6 border-t border-white/10">
+                
+                {/* Previous Button */}
                 <Button
-                 
+                  variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="gap-1"
+                  className="gap-1 bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:text-white transition-all disabled:opacity-40 disabled:hover:bg-white/5"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Previous
+                  <span className="hidden sm:inline">Previous</span>
                 </Button>
                 
-                <div className="flex gap-1">
+                {/* Page Numbers */}
+                <div className="flex gap-1.5">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let pageNum;
                     if (totalPages <= 5) {
@@ -306,13 +310,20 @@ export default function PropertiesSearchPage() {
                       pageNum = currentPage - 2 + i;
                     }
                     
+                    const isActive = currentPage === pageNum;
+                    
                     return (
                       <Button
                         key={pageNum}
-                        variant={currentPage === pageNum ? "default" : "outline"}
+                        variant={isActive ? "default" : "outline"}
                         size="sm"
                         onClick={() => handlePageChange(pageNum)}
-                        className={currentPage === pageNum ? "bg-rose-500 font-bold":"bg-white"}
+                        className={cn(
+                          "w-9 h-9 p-0 transition-all", // Perfect square for page numbers
+                          isActive 
+                            ? "bg-rose-500 hover:bg-rose-600 text-white font-bold border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.3)]" 
+                            : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white"
+                        )}
                       >
                         {pageNum}
                       </Button>
@@ -320,14 +331,15 @@ export default function PropertiesSearchPage() {
                   })}
                 </div>
                 
+                {/* Next Button */}
                 <Button
-                
+                  variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="gap-1"
+                  className="gap-1 bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:text-white transition-all disabled:opacity-40 disabled:hover:bg-white/5"
                 >
-                  Next
+                  <span className="hidden sm:inline">Next</span>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>

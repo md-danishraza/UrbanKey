@@ -46,15 +46,13 @@ export function Chatbot() {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
-  }, [messages, isTyping]);
+  }, [messages, isTyping, isMinimized]);
 
   const loadChatHistory = async () => {
     try {
       const token = await getToken();
       const response: any = await apiClient.get('/api/chat/history', token);
       if (response.history && response.history.length > 0) {
-        // Load both user and assistant messages from history
-        // Note: You'll need to store both sides in your backend
         const loadedMessages: Message[] = [];
         response.history.forEach((h: any) => {
           loadedMessages.push({
@@ -86,7 +84,6 @@ export function Chatbot() {
       setMessages([]);
       toast.success('Chat history cleared');
     } catch (error) {
-      console.error('Failed to clear history:', error);
       toast.error('Failed to clear history');
     }
   };
@@ -120,11 +117,8 @@ export function Chatbot() {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      setIsTyping(false);
     } catch (error: any) {
-      console.error('Failed to send message:', error);
       toast.error(error.message || 'Failed to get response. Please try again.');
-      
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -132,8 +126,8 @@ export function Chatbot() {
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
-      setIsTyping(false);
     } finally {
+      setIsTyping(false);
       setIsLoading(false);
     }
   };
@@ -150,18 +144,12 @@ export function Chatbot() {
     inputRef.current?.focus();
   };
 
-  const toggleMinimize = () => {
-    setIsMinimized(!isMinimized);
-  };
-
+  const toggleMinimize = () => setIsMinimized(!isMinimized);
   const toggleOpen = () => {
     setIsOpen(!isOpen);
-    if (!isOpen) {
-      setIsMinimized(false);
-    }
+    if (!isOpen) setIsMinimized(false);
   };
 
-  // Don't show if user is not logged in
   if (!isSignedIn) return null;
 
   return (
@@ -177,14 +165,13 @@ export function Chatbot() {
       {/* Chat Modal */}
       {isOpen && (
         <div className={cn(styles.chatModal, isMinimized && styles.chatModalMinimized)}>
+          
           {/* Header */}
           <div className={styles.chatHeader}>
             <div className={styles.headerLeft}>
               <Sparkles className={styles.headerIcon} />
-              <span className={styles.headerTitle}>UrbanKey AI Assistant</span>
-              <Badge variant="secondary" className={styles.headerBadge}>
-                RAG Powered
-              </Badge>
+              <span className={styles.headerTitle}>UrbanKey AI</span>
+              <Badge variant="secondary" className={styles.headerBadge}>RAG Powered</Badge>
             </div>
             <div className={styles.headerActions}>
               <TooltipProvider>
@@ -215,25 +202,29 @@ export function Chatbot() {
             </div>
           </div>
 
-          {/* Messages Area */}
+          {/* Messages Area - Hidden when minimized */}
           {!isMinimized && (
             <>
-              <div ref={scrollAreaRef} className={styles.messagesArea}>
+              <div 
+                ref={scrollAreaRef} 
+                className={styles.messagesArea}
+                data-lenis-prevent="true"
+                onWheel={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+              >
                 {messages.length === 0 ? (
                   <div className={styles.emptyState}>
-                    <Sparkles className={styles.emptyIcon} />
+                    <div className={styles.emptyIconWrapper}>
+                      <Sparkles className={styles.emptyIcon} />
+                    </div>
                     <h3 className={styles.emptyTitle}>Hi there! 👋</h3>
                     <p className={styles.emptyText}>
                       Ask me anything about properties on UrbanKey. I can help you find your perfect home!
                     </p>
                     <p className={styles.suggestionsTitle}>Try asking:</p>
                     <div className={styles.suggestionsGrid}>
-                      {['Show me 2BHK apartments', 'Properties under ₹30,000', 'Near metro station', 'With power backup'].map((q) => (
-                        <button
-                          key={q}
-                          onClick={() => handleSuggestedQuestion(q)}
-                          className={styles.suggestionButton}
-                        >
+                      {['Show me 2BHK apartments', 'Properties under ₹30,000', 'Near metro station'].map((q) => (
+                        <button key={q} onClick={() => handleSuggestedQuestion(q)} className={styles.suggestionButton}>
                           {q}
                         </button>
                       ))}
@@ -242,34 +233,22 @@ export function Chatbot() {
                 ) : (
                   <>
                     {messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={cn(styles.messageWrapper, message.role === 'user' ? styles.messageUser : styles.messageAssistant)}
-                      >
+                      <div key={message.id} className={cn(styles.messageWrapper, message.role === 'user' ? styles.messageUser : styles.messageAssistant)}>
                         {message.role === 'assistant' && (
                           <Avatar className={styles.messageAvatar}>
                             <AvatarFallback className={styles.avatarFallback}>AI</AvatarFallback>
                           </Avatar>
                         )}
-                        <div
-                          className={cn(styles.messageBubble, message.role === 'user' ? styles.messageUserBubble : styles.messageAssistantBubble)}
-                        >
+                        <div className={cn(styles.messageBubble, message.role === 'user' ? styles.messageUserBubble : styles.messageAssistantBubble)}>
                           <div className={styles.messageContent}>
                             <ReactMarkdown>{message.content}</ReactMarkdown>
                           </div>
 
-                          {/* Property Cards */}
                           {message.properties && message.properties.length > 0 && (
                             <div className={styles.propertyCardsContainer}>
-                              <p className="text-xs text-gray-400">Relevant properties:</p>
+                              <p className={styles.propertyCardLabel}>Relevant properties:</p>
                               {message.properties.slice(0, 3).map((prop: any) => (
-                                <a
-                                  key={prop.id}
-                                  href={`/properties/${prop.id}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={styles.propertyCardLink}
-                                >
+                                <a key={prop.id} href={`/properties/${prop.id}`} target="_blank" rel="noopener noreferrer" className={styles.propertyCardLink}>
                                   <p className={styles.propertyCardTitle}>{prop.title}</p>
                                   <p className={styles.propertyCardPrice}>₹{prop.rent.toLocaleString()}/month</p>
                                 </a>
@@ -277,15 +256,10 @@ export function Chatbot() {
                             </div>
                           )}
 
-                          {/* Suggested Questions */}
                           {message.suggestedQuestions && message.suggestedQuestions.length > 0 && (
                             <div className={styles.suggestedQuestionsContainer}>
                               {message.suggestedQuestions.map((q, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={() => handleSuggestedQuestion(q)}
-                                  className={styles.suggestedQuestionButton}
-                                >
+                                <button key={idx} onClick={() => handleSuggestedQuestion(q)} className={styles.suggestedQuestionButton}>
                                   {q}
                                 </button>
                               ))}
@@ -294,9 +268,7 @@ export function Chatbot() {
                         </div>
                         {message.role === 'user' && (
                           <Avatar className={styles.messageAvatar}>
-                            <AvatarFallback className={cn(styles.avatarFallback, styles.userAvatarFallback)}>
-                              You
-                            </AvatarFallback>
+                            <AvatarFallback className={cn(styles.avatarFallback, styles.userAvatarFallback)}>You</AvatarFallback>
                           </Avatar>
                         )}
                       </div>
@@ -342,11 +314,11 @@ export function Chatbot() {
             </>
           )}
           
-          {/* Minimized View */}
+          {/* Minimized View - Clickable to expand! */}
           {isMinimized && (
-            <div className={styles.minimizedContent}>
-              <Sparkles className={styles.headerIcon} style={{ display: 'inline', marginRight: '8px' }} />
-              UrbanKey AI Assistant - Click expand to chat
+            <div className={styles.minimizedContent} onClick={toggleMinimize}>
+              <Sparkles className={styles.headerIcon} style={{ display: 'inline', marginRight: '8px', color: '#8b5cf6' }} />
+              <span>UrbanKey AI Assistant is ready. <strong>Click to chat</strong></span>
             </div>
           )}
         </div>

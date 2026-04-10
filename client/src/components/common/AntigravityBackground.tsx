@@ -10,23 +10,27 @@ export function AntigravityBackground() {
 
       
       <div className="absolute inset-0 w-full h-full opacity-60 dark:opacity-40">
-        <Antigravity
+      <Antigravity
           count={300}
-          magnetRadius={10}
+          // --- INTERACTIVITY PROPS ---
+          magnetRadius={45}       // Increased from 10: Makes the cursor's area of effect much larger
+          fieldStrength={35}      // Increased from 13: Makes the push/pull reaction much more noticeable
+          lerpSpeed={0.15}        // Increased from 0.1: Makes the particles snap to the cursor a bit faster
+          
+          // --- SPEED PROPS ---
+          waveSpeed={0.15}        // Decreased from 0.4: Slows down the global wave motion
+          rotationSpeed={0.4}     // Decreased from 1.3: Slows down the spinning of individual tetrahedrons
+          pulseSpeed={1.2}        // Decreased from 3: Makes the size pulsing much more subtle and calm
+          
+          // --- AESTHETIC PROPS (Kept mostly the same) ---
           ringRadius={10}
-          waveSpeed={0.4}
           waveAmplitude={1}
           particleSize={2}
-          lerpSpeed={0.1}
-        //     {/* 2. PARTICLE COLOR: Change this hex code to change the color of the floating shapes */}
           color="#f43f5e" 
           autoAnimate
           particleVariance={1.7}
-          rotationSpeed={1.3}
           depthFactor={1.8}
-          pulseSpeed={3}
           particleShape="tetrahedron"
-          fieldStrength={13}
         />
       </div>
       
