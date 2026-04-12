@@ -86,6 +86,8 @@ export default function Testimonials() {
             itemScale={0.05}      /* How much each card shrinks as it stacks */
             stackOffset={80}      /* The distance from the top of the screen where cards pin */
             useWindowScroll={true} 
+
+            
           >
            {testimonials.map((testimonial) => (
               <ScrollStackItem key={testimonial.id}>

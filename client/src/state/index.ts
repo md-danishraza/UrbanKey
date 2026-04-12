@@ -2,6 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import { api } from "./api";
 import searchReducer from "./features/searchSlice"; // Example feature slice
+import profileReducer from "./features/profileSlice";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 
 export const store = configureStore({
@@ -9,6 +10,8 @@ export const store = configureStore({
     [api.reducerPath]: api.reducer,
     // Add your normal slices here
     search: searchReducer,
+    // profile slice
+    profile: profileReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({ serializableCheck: false }).concat(api.middleware),

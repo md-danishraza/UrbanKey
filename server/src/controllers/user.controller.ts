@@ -432,3 +432,208 @@ export const getUserAgreements = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// ==================== PROFILE MANAGEMENT ====================
+
+/**
+ * GET /api/users/me/profile
+ * Get complete user profile with all details
+ */
+export const getUserProfile = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        properties: {
+          take: 5,
+          orderBy: { createdAt: "desc" },
+        },
+        wishlist: {
+          take: 5,
+          include: { property: true },
+          orderBy: { createdAt: "desc" },
+        },
+        visits: {
+          take: 5,
+          orderBy: { createdAt: "desc" },
+        },
+        leads: {
+          take: 5,
+          orderBy: { createdAt: "desc" },
+        },
+        documents: true,
+        landlordAgreement: true,
+        tenantAgreement: true,
+        onboardingProgress: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Get statistics
+    const stats = {
+      totalProperties: await prisma.property.count({
+        where: { landlordId: userId },
+      }),
+      totalLeads: await prisma.lead.count({ where: { tenantId: userId } }),
+      totalVisits: await prisma.visitSchedule.count({
+        where: { tenantId: userId },
+      }),
+      wishlistCount: await prisma.wishlist.count({
+        where: { tenantId: userId },
+      }),
+      activeAgreements: await prisma.rentalAgreement.count({
+        where: {
+          OR: [
+            { tenantId: userId, status: "ACTIVE" },
+            { landlordId: userId, status: "ACTIVE" },
+          ],
+        },
+      }),
+    };
+
+    res.json({
+      success: true,
+      data: { ...user, stats },
+    });
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * PUT /api/users/me/profile
+ * Update user profile (full profile update)
+ */
+export const updateUserProfile = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const {
+      fullName,
+      phone,
+      avatarUrl,
+      email,
+      bio,
+      preferredLocations,
+      budget,
+    } = req.body;
+
+    // Update Clerk metadata
+    try {
+      const firstName = fullName?.split(" ")[0] || "";
+      const lastName = fullName?.split(" ").slice(1).join(" ") || "";
+
+      await clerkClient.users.updateUser(userId, {
+        firstName,
+        lastName,
+        ...(avatarUrl && { profileImageUrl: avatarUrl }),
+      });
+    } catch (clerkError) {
+      console.error("Error updating Clerk user:", clerkError);
+    }
+
+    // Update database
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        fullName,
+        phone,
+        avatarUrl,
+        ...(email && { email }),
+        // Store additional profile data in a JSON field or create a Profile model
+        // For now, we'll use a separate Profile model (you'll need to create it)
+      },
+    });
+
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      data: updatedUser,
+    });
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * GET /api/users/me/stats
+ * Get user statistics
+ */
+export const getUserStats = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    let stats: any = {
+      memberSince: (await prisma.user.findUnique({ where: { id: userId } }))
+        ?.createdAt,
+    };
+
+    if (user.role === "TENANT") {
+      stats = {
+        ...stats,
+        wishlistCount: await prisma.wishlist.count({
+          where: { tenantId: userId },
+        }),
+        totalLeads: await prisma.lead.count({ where: { tenantId: userId } }),
+        totalVisits: await prisma.visitSchedule.count({
+          where: { tenantId: userId },
+        }),
+        activeAgreements: await prisma.rentalAgreement.count({
+          where: { tenantId: userId, status: "ACTIVE" },
+        }),
+      };
+    } else if (user.role === "LANDLORD") {
+      stats = {
+        ...stats,
+        totalProperties: await prisma.property.count({
+          where: { landlordId: userId },
+        }),
+        activeProperties: await prisma.property.count({
+          where: { landlordId: userId, isActive: true },
+        }),
+        totalLeads: await prisma.lead.count({
+          where: { property: { landlordId: userId } },
+        }),
+        totalVisits: await prisma.visitSchedule.count({
+          where: { property: { landlordId: userId } },
+        }),
+        activeAgreements: await prisma.rentalAgreement.count({
+          where: { landlordId: userId, status: "ACTIVE" },
+        }),
+      };
+    }
+
+    res.json({
+      success: true,
+      stats,
+    });
+  } catch (error) {
+    console.error("Error fetching user stats:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};

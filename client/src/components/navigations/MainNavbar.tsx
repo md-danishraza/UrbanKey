@@ -100,6 +100,10 @@ export default function MainNavbar() {
       }}
     >
       <UserButton.MenuItems>
+         {/* Profile Link - Common for all users */}
+        <UserButton.Link label="My Profile" href="/profile" labelIcon={<User className="w-4 h-4" />} />
+   
+
         {/* Tenant Links */}
         {userRole === 'tenant' && <UserButton.Link label="Dashboard" href="/tenant/dashboard" labelIcon={<Building2 className="w-4 h-4" />} />}
         {userRole === 'tenant' && <UserButton.Link label="Wishlist" href="/tenant/wishlist" labelIcon={<Heart className="w-4 h-4" />} />}
@@ -117,6 +121,9 @@ export default function MainNavbar() {
         
         {/* Admin Links */}
         {userRole === 'admin' && <UserButton.Link label="dashboard" href="/admin" labelIcon={<Shield className="w-4 h-4" />} />}
+
+        {/* sign out */}
+        <UserButton.Action label="signOut" />
       </UserButton.MenuItems>
     </UserButton>
   );

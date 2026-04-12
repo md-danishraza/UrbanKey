@@ -16,6 +16,9 @@ import {
   isLandlordVerified,
   getUserDocuments,
   getUserAgreements,
+  getUserProfile,
+  updateUserProfile,
+  getUserStats,
 } from "../controllers/user.controller.js";
 
 const router = Router();
@@ -385,5 +388,15 @@ router.get("/me/documents", getUserDocuments);
  *         description: Server error
  */
 router.get("/me/agreements", getUserAgreements);
+
+// profile mgt
+router.get("/me/profile", getUserProfile);
+router.put(
+  "/me/profile",
+  ...validateUserProfileUpdate(),
+  validateRequest,
+  updateUserProfile
+);
+router.get("/me/stats", getUserStats);
 
 export default router;

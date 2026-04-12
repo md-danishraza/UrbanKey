@@ -28,7 +28,9 @@ export const validateUserProfileUpdate = () => [
     .withMessage("Full name can only contain letters and spaces"),
 
   body("phone")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
+    .isString()
+    .withMessage("Phone must be a string")
     .matches(/^[6-9]\d{9}$/)
     .withMessage(
       "Phone number must be a valid 10-digit Indian number (starts with 6-9)"
@@ -36,16 +38,17 @@ export const validateUserProfileUpdate = () => [
     .trim(),
 
   body("avatarUrl")
-    .optional()
+    .optional({ nullable: true })
     .isURL()
     .withMessage("Avatar URL must be a valid URL")
     .trim(),
 
-  body("email")
-    .optional()
-    .isEmail()
-    .withMessage("Valid email address is required")
-    .normalizeEmail(),
+  // Remove email validation entirely - email shouldn't be updated via profile
+  // body('email')
+  //   .optional()
+  //   .isEmail()
+  //   .withMessage('Valid email address is required')
+  //   .normalizeEmail(),
 ];
 
 /**
