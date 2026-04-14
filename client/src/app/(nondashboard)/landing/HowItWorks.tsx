@@ -18,9 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import styles from "@/styles/Landing.module.css";
-import { useEffect, useState } from "react";
-import { apiClient } from "@/lib/api/api-client";
-import { toast } from "sonner";
+
+import { useGetPlatformStatsQuery } from "@/state/apis/propertyApi";
 
 const steps = [
   {
@@ -79,51 +78,10 @@ const steps = [
   }
 ];
 
-interface Stats {
-  totalProperties: number;
-  totalTenants: number;
-  totalLandlords: number;
-  totalAgreements: number;
-}
 
 function HowItWorks() {
-  const [stats, setStats] = useState<Stats>({
-    totalProperties: 0,
-    totalTenants: 0,
-    totalLandlords: 0,
-    totalAgreements: 0,
-  });
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const { data: stats, isLoading: isLoadingStats } = useGetPlatformStatsQuery();
 
-  useEffect(() => {
-    loadStats();
-  }, []);
-
-  const loadStats = async () => {
-    try {
-      // Fetch stats from backend
-      const statsResponse = await apiClient.get<Stats>("/api/properties/stats");
-      // console.log(statsResponse)
-      setStats({
-        totalProperties: statsResponse.totalProperties || 0,
-        totalTenants: statsResponse.totalTenants || 0,
-        totalLandlords: statsResponse.totalLandlords || 0,
-        totalAgreements: statsResponse.totalAgreements || 0,
-      });
-    } catch (error) {
-      console.error('Failed to load stats:', error);
-      toast.error("Error loading statistics");
-      // Fallback to mock data
-      setStats({
-        totalProperties: 150,
-        totalTenants: 380,
-        totalLandlords: 52,
-        totalAgreements: 45,
-      });
-    } finally {
-      setIsLoadingStats(false);
-    }
-  };
 
   const formatNumber = (num: number): string => {
     if (num >= 1000) {
@@ -132,29 +90,36 @@ function HowItWorks() {
     return num.toString();
   };
 
+  // Use stats with fallback values
+  const totalProperties = stats?.totalProperties || 0;
+  const totalTenants = stats?.totalTenants || 0;
+  const totalLandlords = stats?.totalLandlords || 0;
+  const totalAgreements = stats?.totalAgreements || 0;
+
+  
   const statItems = [
     { 
       label: "Properties Listed", 
-      value: stats.totalProperties,
-      formattedValue: formatNumber(stats.totalProperties),
+      value: totalProperties,
+      formattedValue: formatNumber(totalProperties),
       icon: Home 
     },
     { 
       label: "Happy Tenants", 
-      value: stats.totalTenants,
-      formattedValue: formatNumber(stats.totalTenants),
+      value: totalTenants,
+      formattedValue: formatNumber(totalTenants),
       icon: Shield 
     },
     { 
       label: "Verified Owners", 
-      value: stats.totalLandlords,
-      formattedValue: formatNumber(stats.totalLandlords),
+      value: totalLandlords,
+      formattedValue: formatNumber(totalLandlords),
       icon: Search 
     },
     { 
       label: "Agreements Generated", 
-      value: stats.totalAgreements,
-      formattedValue: formatNumber(stats.totalAgreements),
+      value: totalAgreements,
+      formattedValue: formatNumber(totalAgreements),
       icon: FileText 
     },
   ];

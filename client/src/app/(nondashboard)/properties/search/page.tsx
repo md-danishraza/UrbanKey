@@ -1,19 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import {  Map, Loader2, SlidersHorizontal, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { Map, Loader2, SlidersHorizontal, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { PropertyFilters } from '@/components/properties/PropertyFilters';
 import { PropertyCard } from '@/components/properties/PropertyCard';
 import { SemanticSearch } from '@/components/search/SemanticSearch';
 import { PropertyMapCluster } from '@/components/map/PropertyMapCluster';
-import { apiClient } from '@/lib/api/api-client';
 import { SearchFilters } from '@/types/property';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { AntigravityBackground } from '@/components/common/AntigravityBackground';
 import { cn } from '@/lib/utils';
+import { 
+  useGetAllPropertiesForMapQuery,
+  useGetPropertiesQuery, 
+  useLazyGetPropertiesQuery,
+  useLazySemanticSearchQuery 
+} from '@/state/apis/propertyApi';
 
 // Default filter values
 const defaultFilters: SearchFilters = {
@@ -31,125 +36,100 @@ const defaultFilters: SearchFilters = {
 };
 
 export default function PropertiesSearchPage() {
-  const [properties, setProperties] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  // State
+  const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSemanticSearch, setIsSemanticSearch] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
+
+  // RTK Query hooks
+  const { 
+    data: propertiesData, 
+    isLoading: isLoadingProperties,
+    refetch 
+  } = useGetPropertiesQuery({
+    page: currentPage,
+    limit: 9,
+    filters: isSemanticSearch ? undefined : filters,
+  }, {
+    skip: isSemanticSearch,
+  });
+
+  const [triggerSemanticSearch, { data: semanticData, isLoading: isSemanticLoading }] = useLazySemanticSearchQuery();
+  const [triggerFilteredSearch] = useLazyGetPropertiesQuery();
   
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalProperties, setTotalProperties] = useState(0);
-  const [isSemanticSearch, setIsSemanticSearch] = useState(false);
+  // entire data for map
+  const { data: allProperties = [] } = useGetAllPropertiesForMapQuery();
 
-  // Load properties on mount
-  useEffect(() => {
-    loadProperties();
-  }, [currentPage]);
 
-  const loadProperties = async () => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.append('page', currentPage.toString());
-      params.append('limit', '9'); // 3x3 grid
-      
-      const response: any = await apiClient.get(`/api/properties?${params.toString()}`);
-      if (response.data) {
-        setProperties(response.data);
-        setTotalPages(response.totalPages);
-        setTotalProperties(response.total);
-      } else if (Array.isArray(response)) {
-        setProperties(response);
-      } else {
-        setProperties([]);
-      }
-    } catch (error) {
-      console.error('Failed to load properties:', error);
-      toast.error('Failed to load properties');
-      setProperties([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Get data from either regular or semantic search
+  const properties = isSemanticSearch ? (semanticData?.results || []) : (propertiesData?.data || []);
+  const totalPages = isSemanticSearch ? 1 : (propertiesData?.totalPages || 1);
+  const totalProperties = isSemanticSearch ? (semanticData?.count || 0) : (propertiesData?.total || 0);
+  const isLoading = isSemanticSearch ? isSemanticLoading : isLoadingProperties;
 
-  const handleSemanticSearch = async (query: string) => {
-    if (!query.trim()) {
-      setIsSemanticSearch(false);
-      setCurrentPage(1);
-      loadProperties();
-      return;
-    }
-    
-    setIsLoading(true);
-    setSearchQuery(query);
-    setIsSemanticSearch(true);
-    try {
-      const response: any = await apiClient.get(`/api/properties/semantic?q=${encodeURIComponent(query)}`);
-      setProperties(response.results || []);
-      setTotalPages(1); // Semantic search returns all results on one page
-      setTotalProperties(response.count || response.results?.length || 0);
-    } catch (error) {
-      console.error('Semantic search failed:', error);
-      toast.error('Search failed, showing all properties');
-      setIsSemanticSearch(false);
-      loadProperties();
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Handle filter search
   const handleFilterSearch = async (newFilters: SearchFilters) => {
-    setIsLoading(true);
-    setFilters(newFilters);
     setIsSemanticSearch(false);
+    setFilters(newFilters);
     setCurrentPage(1);
     
     try {
-      const params = new URLSearchParams();
-      params.append('page', '1');
-      params.append('limit', '9');
+      const result = await triggerFilteredSearch({
+        page: 1,
+        limit: 9,
+        filters: newFilters,
+      }).unwrap();
       
-      if (newFilters.city) params.append('city', newFilters.city);
-      if (newFilters.minRent > 0) params.append('minRent', newFilters.minRent.toString());
-      if (newFilters.maxRent < 100000) params.append('maxRent', newFilters.maxRent.toString());
-      if (newFilters.bhk.length) params.append('bhk', newFilters.bhk.join(','));
-      if (newFilters.furnishing.length) params.append('furnishing', newFilters.furnishing.join(','));
-      if (newFilters.tenantType !== 'both') params.append('tenantType', newFilters.tenantType);
-      if (newFilters.hasWater247) params.append('hasWater247', 'true');
-      if (newFilters.hasPowerBackup) params.append('hasPowerBackup', 'true');
-      if (newFilters.hasIglPipeline) params.append('hasIglPipeline', 'true');
-      if (newFilters.isDirectOwner) params.append('isDirectOwner', 'true');
-      if (newFilters.nearbyMetro) params.append('nearbyMetro', 'true');
-      
-      const url = `/api/properties?${params.toString()}`;
-      const response: any = await apiClient.get(url);
-      setProperties(response.data || []);
-      setTotalPages(response.totalPages || 1);
-      setTotalProperties(response.total || 0);
-      
-      if (response.data?.length === 0) {
+      if (result.total === 0) {
         toast.info('No properties found matching your criteria');
       }
     } catch (error) {
       console.error('Filter search failed:', error);
       toast.error('Failed to apply filters');
-    } finally {
-      setIsLoading(false);
     }
   };
 
+  // Handle semantic search
+  const handleSemanticSearch = async (query: string) => {
+    if (!query.trim()) {
+      setIsSemanticSearch(false);
+      setCurrentPage(1);
+      setFilters(defaultFilters);
+      setSearchQuery('');
+      refetch();
+      return;
+    }
+    
+    setSearchQuery(query);
+    setIsSemanticSearch(true);
+    
+    try {
+      const result = await triggerSemanticSearch(query).unwrap();
+      if (result.count === 0) {
+        toast.info('No properties found matching your description');
+      }
+    } catch (error) {
+      console.error('Semantic search failed:', error);
+      toast.error('Search failed, showing all properties');
+      setIsSemanticSearch(false);
+      refetch();
+    }
+  };
+
+  // Handle reset filters
   const handleResetFilters = () => {
     setSearchQuery('');
     setFilters(defaultFilters);
     setIsSemanticSearch(false);
     setCurrentPage(1);
-    loadProperties();
+    refetch();
     toast.success('All filters cleared');
   };
 
+  // Handle page change
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -319,7 +299,7 @@ export default function PropertiesSearchPage() {
                         size="sm"
                         onClick={() => handlePageChange(pageNum)}
                         className={cn(
-                          "w-9 h-9 p-0 transition-all", // Perfect square for page numbers
+                          "w-9 h-9 p-0 transition-all",
                           isActive 
                             ? "bg-rose-500 hover:bg-rose-600 text-white font-bold border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.3)]" 
                             : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white"
@@ -355,9 +335,9 @@ export default function PropertiesSearchPage() {
         )}
       </div>
 
-      {/* Map Modal */}
+      {/* Map Modal - Filter properties with valid coordinates */}
       <PropertyMapCluster
-        properties={properties.filter(p => p.latitude && p.longitude)}
+        properties={allProperties.filter(p => p.latitude && p.longitude)}
         isOpen={isMapOpen}
         onClose={() => setIsMapOpen(false)}
         onPropertyClick={handlePropertyClick}

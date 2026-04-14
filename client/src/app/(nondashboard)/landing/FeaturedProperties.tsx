@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { PropertyCard } from "@/components/properties/PropertyCard";
-import { apiClient } from "@/lib/api/api-client";
 import styles from "@/styles/Landing.module.css";
 import { toast } from "sonner";
+
+import { useGetFeaturedPropertiesQuery } from '@/state/apis/propertyApi';
 
 interface Property {
   id: string;
@@ -26,35 +27,15 @@ interface Property {
 }
 
 function FeaturedProperties() {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    loadFeaturedProperties();
-  }, []);
-
-  const loadFeaturedProperties = async () => {
-    setIsLoading(true);
-    try {
-      // Fetch properties - you can add filters like sort by latest or most viewed
-      const response: any = await apiClient.get('/api/properties?limit=4&sort=createdAt');
-      
-      if (response.data) {
-        setProperties(response.data);
-      } else if (Array.isArray(response)) {
-        setProperties(response);
-      } else {
-        setProperties([]);
-      }
-    } catch (error) {
-      console.error('Failed to load featured properties:', error);
-      toast.error('Failed to load featured properties');
-      setProperties([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  const { data: properties = [], isLoading, error } = useGetFeaturedPropertiesQuery();
+  
+  if(error){
+    return(
+      <div className="text-center text-primary text-3xl">
+        Error Loading Featured Properties
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (

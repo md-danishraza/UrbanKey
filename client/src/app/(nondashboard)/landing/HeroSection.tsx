@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useGetPlatformStatsQuery, useLazySemanticSearchQuery } from '@/state/apis/propertyApi';
 import { useRouter } from 'next/navigation';
 
 
@@ -9,74 +10,35 @@ import {  MapPin, TrendingUp, Zap, Shield, Users } from "lucide-react";
 
 import styles from "@/styles/Landing.module.css";
 import { cn } from "@/lib/utils";
-import { apiClient } from '@/lib/api/api-client';
-import { toast } from 'sonner';
+
 import { AntigravityBackground } from '@/components/common/AntigravityBackground';
 import { TextTypeHeader } from '@/components/common/TextTypeHeader';
 import { SearchBar } from '@/components/common/SearchBar';
 
-// Define stats interface
-interface Stats {
-  totalProperties: number;
-  totalTenants: number;
-  totalLandlords: number;
-}
+
 function HeroSection() {
   const router = useRouter();
- 
+  const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [stats, setStats] = useState({
-    totalProperties: 0,
-    totalTenants: 0,
-    totalLandlords: 0,
-  });
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
-
-  // Load stats on mount
-  useEffect(() => {
-    loadStats();
-  },[]);
-
-  const loadStats = async () => {
-    try {
-      // Fetch stats from your backend
-      const statsResponse = await apiClient.get<Stats>("/api/properties/stats");
-      
-      setStats({
-        totalProperties: statsResponse.totalProperties,
-        totalTenants: statsResponse.totalTenants,
-        totalLandlords: statsResponse.totalLandlords,
-      });
-    } catch (error) {
-      console.error('Failed to load stats:', error);
-      toast.error("Error loading statistics");
-      // Fallback to mock data
-      setStats({
-        totalProperties: 150,
-        totalTenants: 380,
-        totalLandlords: 52,
-      });
-    } finally {
-      setIsLoadingStats(false);
-    }
-  };
+  
+  // Use RTK Query for stats
+  const { data: stats, isLoading: isLoadingStats } = useGetPlatformStatsQuery();
+  
+  // Use lazy query for search (only when user searches)
+  const [triggerSearch] = useLazySemanticSearchQuery();
 
   const handleSearch = async (query: string) => {
     if (!query.trim()) return;
 
     setIsSearching(true);
     try {
-      const response: any = await apiClient.get(
-        // Use semantic search if available, otherwise regular search
-        `/api/properties/semantic?q=${encodeURIComponent(query)}`
-      );
-       // Store search results in sessionStorage to persist across pages
-      sessionStorage.setItem('searchResults', JSON.stringify(response.results || []));
+      // Use RTK Query's lazy query
+      const result = await triggerSearch(query).unwrap();
+      
+      sessionStorage.setItem('searchResults', JSON.stringify(result.results || []));
       sessionStorage.setItem('searchQuery', query);
-        // Navigate to search page
       router.push(`/properties/search?q=${encodeURIComponent(query)}`);
     } catch (error) {
-            // Fallback to regular search
       console.error('Search failed:', error);
       router.push(`/properties/search?q=${encodeURIComponent(query)}`);
     } finally {
@@ -84,6 +46,14 @@ function HeroSection() {
     }
   };
 
+  // Use stats data (fallback to 0 if not loaded)
+  const totalProperties = stats?.totalProperties || 0;
+  const totalTenants = stats?.totalTenants || 0;
+  const totalLandlords = stats?.totalLandlords || 0;
+
+
+
+  
   
 
   const handleTrendingTagClick = (tag: string) => {
@@ -104,8 +74,10 @@ function HeroSection() {
       default:
         searchTerm = tag;
     }
+
+    setSearchQuery(searchTerm)
    
-    router.push(`/properties/search?q=${encodeURIComponent(searchTerm)}`);
+    router.push(`/properties/search?q=${encodeURIComponent(searchQuery)}`);
   };
 
   const trendingTags = [
@@ -189,19 +161,19 @@ function HeroSection() {
           >
             <div className="text-center">
               <div className="text-2xl font-bold">
-                {isLoadingStats ? '...' : `${Math.floor(stats.totalProperties )}+`}
+                {isLoadingStats ? '...' : `${Math.floor(totalProperties )}+`}
               </div>
               <div className="text-gray-300">Properties</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">
-                {isLoadingStats ? '...' : `${Math.floor(stats.totalTenants )}+`}
+                {isLoadingStats ? '...' : `${Math.floor(totalTenants )}+`}
               </div>
               <div className="text-gray-300">Happy Tenants</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">
-                {isLoadingStats ? '...' : `${Math.floor(stats.totalLandlords)}+`}
+                {isLoadingStats ? '...' : `${Math.floor(totalLandlords)}+`}
               </div>
               <div className="text-gray-300">Verified Owners</div>
             </div>

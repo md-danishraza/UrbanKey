@@ -7,17 +7,18 @@ import { X, Loader2, Navigation, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { formatCurrency } from '@/lib/utils';
+import { Property } from '@/state/apis/propertyApi';
 
-interface Property {
-  id: string;
-  title: string;
-  rent: number;
-  bhk: string;
-  city: string;
-  latitude: number;
-  longitude: number;
-  images?: { imageUrl: string; isPrimary: boolean }[];
-}
+// interface Property {
+//   id: string;
+//   title: string;
+//   rent: number;
+//   bhk: string;
+//   city: string;
+//   latitude: number;
+//   longitude: number;
+//   images?: { imageUrl: string; isPrimary: boolean }[];
+// }
 
 interface PropertyMapProps {
   properties: Property[];
@@ -70,8 +71,8 @@ export function PropertyMapCluster({ properties, isOpen, onClose, onPropertyClic
         let zoom = 10;
         
         if (validProperties.length > 0) {
-          const avgLat = validProperties.reduce((sum, p) => sum + p.latitude, 0) / validProperties.length;
-          const avgLng = validProperties.reduce((sum, p) => sum + p.longitude, 0) / validProperties.length;
+          const avgLat = validProperties.reduce((sum, p) => sum + p.latitude!, 0) / validProperties.length;
+          const avgLng = validProperties.reduce((sum, p) => sum + p.longitude!, 0) / validProperties.length;
           center = [avgLng, avgLat];
           zoom = validProperties.length === 1 ? 14 : 11;
         }
@@ -153,7 +154,7 @@ export function PropertyMapCluster({ properties, isOpen, onClose, onPropertyClic
         
         // Show popup immediately with slight delay for better UX
         hoverTimeout.current[property.id] = setTimeout(() => {
-          popup.setLngLat([property.longitude, property.latitude]).addTo(map.current!);
+          popup.setLngLat([property.longitude!, property.latitude!]).addTo(map.current!);
         }, 150);
       });
 
@@ -189,7 +190,7 @@ export function PropertyMapCluster({ properties, isOpen, onClose, onPropertyClic
     const validProperties = properties.filter(p => p.latitude && p.longitude);
     if (validProperties.length > 1 && map.current) {
       const bounds = new mapboxgl.LngLatBounds();
-      validProperties.forEach(p => bounds.extend([p.longitude, p.latitude]));
+      validProperties.forEach(p => bounds.extend([p.longitude!, p.latitude!]));
       map.current.fitBounds(bounds, { padding: 50, duration: 500 });
     }
   };
