@@ -337,12 +337,16 @@ model AnalyticsEvent {
 
 // pgvector model for embeddings
 model PropertyEmbedding {
-  id         String                 @id @default(cuid())
-  propertyId String                 @unique @map("property_id")
+  id         String  @id @default(cuid())
+  propertyId String  @unique @map("property_id")
   content    String? // combined property text
-  // FIX: Updated to 3072 to perfectly match gemini-embedding-001's output
-  embedding  Unsupported("vector")?
-  updatedAt  DateTime               @updatedAt @map("updated_at")
+
+  // explicitly setting to 768
+  // embedding  Unsupported("vector(768)")?
+
+  // 3072 to perfectly match gemini-embedding-001's output
+  embedding Unsupported("vector")?
+  updatedAt DateTime               @updatedAt @map("updated_at")
 
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 

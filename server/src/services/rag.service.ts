@@ -5,11 +5,30 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const EMBEDDING_MODEL = "gemini-embedding-001";
 const CHAT_MODEL = "gemini-2.5-flash";
 
+// // 1. Helper function to perform L2 Normalization
+// function normalizeVector(vector: number[]): number[] {
+//   // Calculate the magnitude (L2 norm)
+//   const magnitude = Math.sqrt(
+//     vector.reduce((sum, val) => sum + val * val, 0)
+//   );
+
+//   // Divide each value by the magnitude to scale the vector back to a length of 1
+//   return vector.map((val) => val / magnitude);
+// }
+
 // Generate embedding for text
 async function generateEmbedding(text: string): Promise<number[]> {
   try {
     const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
     const result = await model.embedContent(text);
+
+    // // Get the original 3072D vector
+    // let embedding = result.embedding.values;
+    // // Truncate to 768 dimensions
+    // embedding = embedding.slice(0, 768);
+    // // Normalize the truncated vector so pgvector can process it accurately
+    // embedding = normalizeVector(embedding);
+
     return result.embedding.values;
   } catch (error) {
     console.error("Error generating embedding:", error);
@@ -104,22 +123,22 @@ async function getGeminiResponse(
     const model = genAI.getGenerativeModel({ model: CHAT_MODEL });
 
     const prompt = `You are UrbanKey, a helpful rental assistant for properties in India. 
-Answer questions based ONLY on the property data provided below. If the answer cannot be found in the context, 
-politely say you don't have that information and suggest browsing the website.
+                    Answer questions based ONLY on the property data provided below. If the answer cannot be found in the context, 
+                    politely say you don't have that information and suggest browsing the website.
 
-CONTEXT:
-${context}
+                    CONTEXT:
+                    ${context}
 
-USER QUESTION: ${question}
+                    USER QUESTION: ${question}
 
-RULES:
-1. Only use information from the context above
-2. Be conversational and helpful
-3. Suggest viewing property details if interested
-4. Keep responses concise but informative
-5. Never invent properties or information
+                    RULES:
+                    1. Only use information from the context above
+                    2. Be conversational and helpful
+                    3. Suggest viewing property details if interested
+                    4. Keep responses concise but informative
+                    5. Never invent properties or information
 
-ANSWER:`;
+                    ANSWER:`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;

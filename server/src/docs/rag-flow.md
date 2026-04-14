@@ -22,11 +22,34 @@ The Complete Flow
    Purpose: Convert text into numerical vectors that computers can understand.
 
 ```typescript
+// 1. Helper function to perform L2 Normalization
+function normalizeVector(vector: number[]): number[] {
+  // Calculate the magnitude (L2 norm)
+  const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
+
+  // Divide each value by the magnitude to scale the vector back to a length of 1
+  return vector.map((val) => val / magnitude);
+}
+
 // Converts any text to a vector
+// Generate embedding for text
 async function generateEmbedding(text: string): Promise<number[]> {
-  const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
-  const result = await model.embedContent(text);
-  return result.embedding.values; // Returns array of 3072 numbers
+  try {
+    const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
+    const result = await model.embedContent(text);
+
+    // // Get the original 3072D vector
+    // let embedding = result.embedding.values;
+    // // Truncate to 768 dimensions
+    // embedding = embedding.slice(0, 768);
+    // // Normalize the truncated vector so pgvector can process it accurately
+    // embedding = normalizeVector(embedding);
+
+    return result.embedding.values;
+  } catch (error) {
+    console.error("Error generating embedding:", error);
+    throw new Error("Failed to generate embedding");
+  }
 }
 ```
 
@@ -159,7 +182,13 @@ CREATE TABLE property_embeddings (
   id TEXT PRIMARY KEY,
   property_id TEXT UNIQUE REFERENCES properties(id),
   content TEXT,                    -- Combined property text used for search
-  embedding vector(3072),          -- The actual vector (3072 numbers)
+
+  // explicitly setting to 768
+  // embedding  Unsupported("vector(768)")?
+
+  // 3072 to perfectly match gemini-embedding-001's output
+  embedding Unsupported("vector")?
+
   updated_at TIMESTAMP
 );
 ```
@@ -211,4 +240,60 @@ Embedding Generation	~500ms per query
 Vector Search	        ~50ms for 10k properties
 AI Response	        ~1-2 seconds
 Total Response Time     ~2-3 seconds
+```
+
+## Vector embedding storage optimization
+
+### Truncation and L2 Normalization
+
+Modern embedding models (like Google's) are trained using a technique called Matryoshka Representation Learning (MRL). Just like Russian nesting dolls, the most important information is packed into the very first dimensions of the vector. Because of this, you can literally just "chop off" the end of the array (truncate it from 3072 to 768) and it still works.
+
+However, there is a catch: <b>Magnitude</b>.
+
+Vector databases like Supabase/pgvector calculate semantic similarity using Cosine Similarity (the angle between two vectors). For Cosine Similarity to be mathematically accurate and highly optimized, the vectors must have a length (magnitude) of exactly 1.
+
+When Google gives you a 3072-dimension vector, its magnitude is 1. But if you slice off the last 2304 numbers, the magnitude of the remaining 768 numbers drops below 1.
+
+To fix this, we apply L2 Normalization. We calculate the new magnitude using the Pythagorean theorem for $n$ dimensions:
+
+$$||v|| = \sqrt{\sum_{i=1}^{n} v_i^2}$$
+
+Then, we divide every single number in our 768-dimension array by that magnitude. This scales the vector back up so its total length is exactly 1 again, allowing Supabase to compare it perfectly.
+
+```typescript
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const EMBEDDING_MODEL = "gemini-embedding-001";
+
+// 1. Helper function to perform L2 Normalization
+function normalizeVector(vector: number[]): number[] {
+  // Calculate the magnitude (L2 norm)
+  const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
+
+  // Divide each value by the magnitude to scale the vector back to a length of 1
+  return vector.map((val) => val / magnitude);
+}
+
+// 2. Updated Generation Function
+export async function generateEmbedding(text: string): Promise<number[]> {
+  try {
+    const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
+    const result = await model.embedContent(text);
+
+    // Get the original 3072D vector
+    let embedding = result.embedding.values;
+
+    // Truncate to 768 dimensions
+    embedding = embedding.slice(0, 768);
+
+    // Normalize the truncated vector so pgvector can process it accurately
+    embedding = normalizeVector(embedding);
+
+    return embedding;
+  } catch (error) {
+    console.error("Error generating embedding:", error);
+    throw new Error("Failed to generate embedding");
+  }
+}
 ```
