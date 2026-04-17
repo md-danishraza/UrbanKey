@@ -21,8 +21,13 @@ export const tagTypes = [
 const getClerkTokenClient = async () => {
   try {
     // Check if we are in the browser and Clerk has initialized
-    if (typeof window !== "undefined" && window.Clerk && window.Clerk.session) {
-      return await window.Clerk.session.getToken();
+    if (typeof window !== "undefined") {
+      // Cast window to 'any' to bypassing TypeScript build errors
+      const globalWindow = window as any;
+
+      if (globalWindow.Clerk && globalWindow.Clerk.session) {
+        return await globalWindow.Clerk.session.getToken();
+      }
     }
     return null;
   } catch (error) {
